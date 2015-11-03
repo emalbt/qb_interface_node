@@ -518,6 +518,18 @@ void qb_class::move() {
 	    		meas[0] = (short int) p_1_[i];
 	    		meas[1] = (short int) p_2_[i];
 
+	    		// Convert in TICK
+	    		if (meas_unit_ == DEG){
+	    			meas[0] *= DEG_TICK_MULTIPLIER;
+					meas[1] *= DEG_TICK_MULTIPLIER;
+	    		}
+			    else{
+			    	if (meas_unit_ == RAD){
+	        			meas[0] = (meas[0] / (M_PI / 180)) * DEG_TICK_MULTIPLIER;
+						meas[1] = (meas[1] / (M_PI / 180)) * DEG_TICK_MULTIPLIER;
+					}
+			    }
+
 	    		cube_chain_[i]->setInputs(meas);
 	    	}
 	    }
