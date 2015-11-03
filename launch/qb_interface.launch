@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+
+<launch>
+<!-- 	<arg name="eq_preset" default="true" />
+	<arg name="hand_perc" default="false" />
+	<arg name="step_time" default="0.04" />
+
+	<arg name="unit" default="0" />
+	<arg name="IDcubes" default="[3, 1]" />
+	<arg name="IDhands" default="[1]" />
+
+	<arg name="my_double_list" default="[1, 2, 3, 4, 5]" /> -->
+
+	<rosparam command="load" file="$(find qb_interface)/conf/config.yaml" />
+
+	<node name="qb_interface_node" pkg="qb_interface" type="qb_interface" args="0" output="screen" />
+
+	<!-- <param name="eq_preset" type="bool" value="$(arg eq_preset)" />
+	<param name="hand_perc" type="bool" value="$(arg hand_perc)" />
+	<param name="unit" type="int" value="$(arg unit)" />
+	<param name="step_time" value="$(arg step_time)" />
+	<param name="IDcubes" value="$(arg IDcubes)" />
+	<param name="IDhands" value="$(arg IDhands)" />
+	<param name="my_double_list" value="[1.0, 2.0, 3.0, 4, 5]" /> -->
+
+</launch>

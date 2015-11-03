@@ -1,0 +1,7 @@
+port: '/dev/ttyUSB0'
+eq_preset: false
+hand_perc: true
+unit: 'DEG'
+step_time: 0.02
+IDcubes: [3]
+IDhands: []
