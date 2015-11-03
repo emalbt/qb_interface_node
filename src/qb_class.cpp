@@ -412,6 +412,22 @@ bool qb_class::readMeas(){
 	    		pos_L.push_back(NAN);
 	    	}
 	    	else{
+
+	    		// Set right unit of measurement
+	    		if (meas_unit_ == DEG){
+        			meas[0] /= DEG_TICK_MULTIPLIER;
+					meas[1] /= DEG_TICK_MULTIPLIER;
+					meas[2] /= DEG_TICK_MULTIPLIER;
+        		}
+			    else{
+			    	if (meas_unit_ == RAD){
+	        			meas[0] = (meas[0] / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+						meas[1] = (meas[1] / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+						meas[2] = (meas[2] / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+					}
+			    }
+			        
+
 	    		pos_1.push_back(meas[0]);
 	    		pos_2.push_back(meas[1]);
 	    		pos_L.push_back(meas[2]);
