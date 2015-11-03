@@ -32,7 +32,7 @@ step_time: 0.02
 
 **ID cubes in chain**
 
-IDcubes: [1 2] 
+IDcubes: [1,2] 
 
 **ID hands in chain**
 
