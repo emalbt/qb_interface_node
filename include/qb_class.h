@@ -16,6 +16,9 @@
 #include <qb_interface/cubePos.h>
 #include <qb_interface/handPos.h>
 
+#include <qb_interface/cubeCurrent.h>
+#include <qb_interface/handCurrent.h>
+
 // General Headers
 #include <vector>
 #include <map>
@@ -59,19 +62,25 @@ class qb_class{
 		bool deactivate();
 
 		// Read positions 
-		bool read();
+		bool readMeas();
 
 		// Move cubes and hands
-		bool move();
+		void move();
+
+		// Get current of cubes and hands
+		bool readCurrent();
 
 		// Callback functions for referiments 
 		void cubeRefCallback(const qb_interface::cubeRef::ConstPtr&);
 		void handRefCallback(const qb_interface::handRef::ConstPtr&);
 
 		// Post on topic functions
-		void send(vector<float>);
-		void send(vector<float>, vector<float>);
-		void send(vector<float>, vector<float>, vector<float>);
+		void sendHandMeas(vector<float>);
+		void sendCubeMeas(vector<float>, vector<float>);
+		void sendCubeMeas(vector<float>, vector<float>, vector<float>);
+
+		void sendCurrent(vector<int>);
+		void sendCurrent(vector<int>, vector<int>);
 
 		// Variables
 
@@ -85,8 +94,8 @@ class qb_class{
 
 		// Vector of ID with request current of cube and hand
 
-		vector<int> current_cube;
-		vector<int> current_hand;
+		vector<int> current_cube_;
+		vector<int> current_hand_;
 
 		// [Eq./Preset] <- true or [Pos_1/Pos_2] <- false flag
 
@@ -95,6 +104,10 @@ class qb_class{
 		// [TICK] <- true or [Perc.] <- false flag
 
 		bool flag_HCMD_type_;
+
+		// Activate current option
+
+		bool flag_curr_type_;
 
 		// Step Time, 1 / step_time = communication frequency
 
@@ -122,5 +135,8 @@ class qb_class{
 
 		ros::Publisher cube_pub;
 		ros::Publisher hand_pub;
+
+		ros::Publisher cube_curr_pub;
+		ros::Publisher hand_curr_pub;
 
 };

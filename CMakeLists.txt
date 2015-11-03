@@ -49,6 +49,8 @@ add_message_files(
   cubeEq_Preset.msg
   cubePos.msg
   handPos.msg
+  cubeCurrent.msg
+  handCurrent.msg
 )
 
 ## Generate services in the 'srv' folder

@@ -33,6 +33,7 @@ qb_class::qb_class(){
 
 	node_->param("/eq_preset", flagCMD_type_, true);
 	node_->param("/hand_perc", flag_HCMD_type_, false);
+	node_->param("/current", flag_curr_type_, false);
 	node_->param<double>("/step_time_", step_time_, 0.002);
 	node_->param<string>("/port", port, "/dev/ttyUSB0");
 
@@ -81,7 +82,7 @@ qb_class::qb_class(){
 
     // Allocate object qbCube, one for each cube in cubeBuf
 
-    for (int i = 0; i < ID_cube.size(); ++i) {
+    for (int i = ID_cube.size(); i--;) {
         tmp_cube = new qbCube(qb_comm_, ID_cube[i]);
         
        	// IF an error is find
@@ -99,7 +100,7 @@ qb_class::qb_class(){
 
     // Allocate object qbCube, one for each cube in cubeBuf
 
-    for (int i = 0; i < ID_hand.size(); ++i) {
+    for (int i = ID_hand.size(); i--;) {
 
         tmp_hand = new qbHand(qb_comm_, ID_hand[i]);
         
@@ -130,6 +131,11 @@ qb_class::qb_class(){
 
 		// Publisher to publish new read positions
 		hand_pub = node_->advertise<qb_interface::handPos>("/qb_class/hand_measurement", 1);
+
+		// Current TOPIC
+
+		if (flag_curr_type_)
+			hand_curr_pub = node_->advertise<qb_interface::handCurrent>("/qb_class/hand_current", 1);
 	}
 
 	if (!cube_chain_.empty()){
@@ -146,7 +152,12 @@ qb_class::qb_class(){
 			cube_pub = node_->advertise<qb_interface::cubeEq_Preset>("/qb_class/cube_measurement", 1);
 		else
 			cube_pub = node_->advertise<qb_interface::cubePos>("/qb_class/cube_measurement", 1);
+
+		// Current TOPIC
+		if (flag_curr_type_)
+			cube_curr_pub = node_->advertise<qb_interface::cubeCurrent>("/qb_class/cube_current", 1);
 	}
+
 }
 
 //-----------------------------------------------------
@@ -362,7 +373,7 @@ bool qb_class::deactivate() {
 }
 
 //-----------------------------------------------------
-//                                                 read
+//                                             readMeas
 //-----------------------------------------------------
 
 /*
@@ -375,7 +386,7 @@ bool qb_class::deactivate() {
 /
 */
 
-bool qb_class::read(){
+bool qb_class::readMeas(){
 
 	bool status = true;
 	short int meas[3];
@@ -391,7 +402,7 @@ bool qb_class::read(){
 		vector<float> pos_2;
 		vector<float> pos_L;
 
-	    for (int i = 0; i < cube_chain_.size(); ++i){
+	    for (int i = cube_chain_.size(); i--;){
 	    	if (!cube_chain_[i]->getMeas(meas)){
 				cerr << "[WARNING] Unable to retrieve measurements of cube: " << cube_chain_[i]->getID() << endl;
 	            status = false;	
@@ -409,7 +420,7 @@ bool qb_class::read(){
 
 	    // Send data on topic
 
-	    send(pos_1, pos_2, pos_L);
+	    sendCubeMeas(pos_1, pos_2, pos_L);
 
 	}else{
 
@@ -418,7 +429,7 @@ bool qb_class::read(){
 		vector<float> pos;
 		vector<float> preset;
 
-	    for (int i = 0; i < cube_chain_.size(); ++i){
+	    for (int i = cube_chain_.size(); i--;){
 	        if(!cube_chain_[i]->getPosAndPreset(&position, &pSet, meas_unit_)) {
 	            cerr << "[WARNING] Unable to retrieve measurements of cube: " << cube_chain_[i]->getID() << endl;
 	            status = false;
@@ -433,12 +444,12 @@ bool qb_class::read(){
 
 	    // Send data on topic
 
-	    send(pos, preset);
+	    sendCubeMeas(pos, preset);
 	}
 
 	// Read Hand position in TICK
 
-	for (int i = 0; i < hand_chain_.size(); ++i){
+	for (int i = hand_chain_.size(); i--;){
     	if (!hand_chain_[i]->getMeas(meas)){
     		cerr << "[WARNING] Unable to retrieve measurements of hand: " << hand_chain_[i]->getID() << endl;
             status = false;
@@ -449,15 +460,14 @@ bool qb_class::read(){
     }
 
     // Send Data hands
-	send(closure);
+	sendHandMeas(closure);
   
     return true;
 }
 
 //-----------------------------------------------------
-//                                            moveCubes
+//                                                 move
 //-----------------------------------------------------
-
 /*
 / *****************************************************
 / Move the chain to desiderated position and preset or
@@ -471,9 +481,7 @@ bool qb_class::read(){
 /
 */
 
-bool qb_class::move() {
-
-	bool status = true;
+void qb_class::move() {
 
     // Check if new position are received
     if ((p_1_.size() != 0) && (p_2_.size() != 0)){
@@ -523,8 +531,6 @@ bool qb_class::move() {
 	    	}
 	    }
 	}
-
-    return true;
 }
 
 //-----------------------------------------------------
@@ -555,7 +561,11 @@ void qb_class::spin(){
 
 		// Read positions of all devices
 
-		read();
+		readMeas();
+
+		// Read positions of all devices
+
+		readCurrent();
 
 		// Set Position of all devices
 
@@ -616,7 +626,7 @@ void qb_class::cubeRefCallback(const qb_interface::cubeRef::ConstPtr& msg){
 }
 
 //-----------------------------------------------------
-//                                     			   send
+//										   sendHandMeas
 //-----------------------------------------------------
 
 /*
@@ -629,13 +639,14 @@ void qb_class::cubeRefCallback(const qb_interface::cubeRef::ConstPtr& msg){
 /
 */
 
-void qb_class::send(vector<float> closure){
+void qb_class::sendHandMeas(vector<float> closure){
 
 	if (hand_chain_.empty())
 		return;
 
 	qb_interface::handPos read_meas;
 
+	// Fill structure
 	read_meas.closure = closure;
 
 	// Publish on right topic
@@ -645,7 +656,7 @@ void qb_class::send(vector<float> closure){
 }
 
 //-----------------------------------------------------
-//                                     			   send
+//                                 		   sendCubeMeas
 //-----------------------------------------------------
 
 /*
@@ -660,13 +671,14 @@ void qb_class::send(vector<float> closure){
 /
 */
 
-void qb_class::send(vector<float> eq, vector<float> preset){
+void qb_class::sendCubeMeas(vector<float> eq, vector<float> preset){
 
 	if (cube_chain_.empty())
 		return;
 
 	qb_interface::cubeEq_Preset read_meas;
 
+	// Fill structure
 	read_meas.eq = eq;
 	read_meas.preset = preset;
 
@@ -675,7 +687,7 @@ void qb_class::send(vector<float> eq, vector<float> preset){
 }
 
 //-----------------------------------------------------
-//                                     			   send
+//                                 		   sendCubeMeas
 //-----------------------------------------------------
 
 /*
@@ -691,13 +703,14 @@ void qb_class::send(vector<float> eq, vector<float> preset){
 /
 */
 
-void qb_class::send(vector<float> pos_1, vector<float> pos_2, vector<float> pos_L){
+void qb_class::sendCubeMeas(vector<float> pos_1, vector<float> pos_2, vector<float> pos_L){
 
 	if (cube_chain_.empty())		
 		return;
 
 	qb_interface::cubePos read_meas;
 
+	// Fill structure
 	read_meas.p_1 = pos_1;
 	read_meas.p_2 = pos_2;
 	read_meas.p_L = pos_L;
@@ -705,4 +718,137 @@ void qb_class::send(vector<float> pos_1, vector<float> pos_2, vector<float> pos_
 	// Publish on right topic
 
 	cube_pub.publish(read_meas);
+}
+
+//-----------------------------------------------------
+//                                          readCurrent
+//-----------------------------------------------------
+
+/*
+/ *****************************************************
+/ Get actual currents of cubes or/and hands
+/ *****************************************************
+/   parameters:
+/   return:
+/       true  on success
+/       false on failure
+/
+*/
+
+bool qb_class::readCurrent() {
+
+	if(!flag_curr_type_)
+		return false;
+
+	// Define Variables
+	bool status = true;
+	int meas[2];
+
+	vector<int> cube_current_1;
+	vector<int> cube_current_2;
+
+	vector<int> hand_current;
+
+	// Get Cube Current
+
+	for (int i = cube_chain_.size(); i--;){
+		if (!cube_chain_[i]->getCurrents(meas)){
+			cerr << "[WARNING] Unable to retrieve currents of cube: " << cube_chain_[i]->getID() << endl;
+			
+			status = false;	
+
+			cube_current_1.push_back(NAN);
+			cube_current_2.push_back(NAN);
+
+		}else{
+
+			cube_current_1.push_back(meas[0]);
+			cube_current_2.push_back(meas[1]);
+
+		}
+	}
+
+	// Send Data of cubes
+	sendCurrent(cube_current_1, cube_current_2);
+
+	// Get Hand Current
+
+	for (int i = hand_chain_.size(); i--;){		
+		if (!hand_chain_[i]->getCurrents(meas)){
+    		cerr << "[WARNING] Unable to retrieve current of hand: " << hand_chain_[i]->getID() << endl;
+
+            status = false;
+
+            hand_current.push_back(NAN);
+        }else
+        	hand_current.push_back(meas[0]);	
+    }
+
+    // Send Data of hands
+	sendCurrent(hand_current);
+  
+    return true;
+
+}
+
+
+//-----------------------------------------------------
+//                                          sendCurrent
+//-----------------------------------------------------
+
+/*
+/ *****************************************************
+/ Send function to post on topic cubes current
+/ *****************************************************
+/   parameters:
+/			current_m1 - current of the first motor
+/			current_m2 - current of the second motor
+/   return:
+/
+*/
+
+void qb_class::sendCurrent(vector<int> current_m1, vector<int> current_m2){
+
+	if (cube_chain_.empty())
+		return;
+	
+	qb_interface::cubeCurrent read_curr;
+
+	// Fill structure
+	read_curr.current_m1 = current_m1;
+	read_curr.current_m2 = current_m2;
+
+	// Publish on right topic
+
+	cube_curr_pub.publish(read_curr);
+
+}
+
+//-----------------------------------------------------
+//                                          sendCurrent
+//-----------------------------------------------------
+
+/*
+/ *****************************************************
+/ Send function to post on topic hands current
+/ *****************************************************
+/   parameters:
+/			current - current of the motor
+/   return:
+/
+*/
+
+void qb_class::sendCurrent(vector<int> current){
+
+	if (hand_chain_.empty())
+		return;
+
+	qb_interface::handCurrent read_curr;
+
+	// Fill structure	
+	read_curr.current = current;
+
+	// Publish on right topic
+
+	hand_curr_pub.publish(read_curr);
 }
