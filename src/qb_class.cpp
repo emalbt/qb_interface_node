@@ -34,7 +34,7 @@ qb_class::qb_class(){
 	node_->param("/eq_preset", flagCMD_type_, true);
 	node_->param("/hand_perc", flag_HCMD_type_, false);
 	node_->param("/current", flag_curr_type_, false);
-	node_->param<double>("/step_time_", step_time_, 0.002);
+	node_->param<double>("/step_time", step_time_, 0.002);
 	node_->param<string>("/port", port, "/dev/ttyUSB0");
 
 	node_->searchParam("/IDcubes", aux);
@@ -122,12 +122,12 @@ qb_class::qb_class(){
 	if (!hand_chain_.empty()){
 
 		// Subscriber initialize	
- 		hand_sub = node_->subscribe("/qb_class/hand_ref", 1000, &qb_class::handRefCallback, this); 		
+ 		hand_sub = node_->subscribe("/qb_class/hand_ref", 1, &qb_class::handRefCallback, this); 		
 
 		// Publisher initialize
 
 		// Outside command publisher, self-open but not internally used topic
-		handRef_pub = node_->advertise<qb_interface::handRef>("/qb_class/hand_ref", 1000);
+		handRef_pub = node_->advertise<qb_interface::handRef>("/qb_class/hand_ref", 1);
 
 		// Publisher to publish new read positions
 		hand_pub = node_->advertise<qb_interface::handPos>("/qb_class/hand_measurement", 1);
@@ -145,7 +145,7 @@ qb_class::qb_class(){
 		// Publisher initialize
 
 		// Outside command publisher, self-open but not internally used topic
-		cubeRef_pub = node_->advertise<qb_interface::cubeRef>("/qb_class/cube_ref", 1000);
+		cubeRef_pub = node_->advertise<qb_interface::cubeRef>("/qb_class/cube_ref", 1);
 
 		// Publisher to publish new read positions
 		if (flagCMD_type_ == EQ_PRESET)
@@ -506,8 +506,9 @@ void qb_class::move() {
 	    if (flagCMD_type_ == EQ_PRESET){
 
 		    	// Command cubes in Equilibrium Position and Preset
-		    	for (int i = cube_chain_.size(); i--;)
-		    		cube_chain_[i]->setPosAndPreset(p_1_[i], p_2_[i], meas_unit_);
+		    	for (int i = cube_chain_.size(); i--;){
+		    		cube_chain_[i]->setPosAndPreset(p_1_[(cube_chain_.size() - 1) - i], p_2_[(cube_chain_.size() - 1) - i], meas_unit_);
+		    	}
 		    	
 	    }else{
 
@@ -515,8 +516,8 @@ void qb_class::move() {
 	    	short int meas[2];
 
 	    	for (int i = cube_chain_.size(); i--;){
-	    		meas[0] = (short int) p_1_[i];
-	    		meas[1] = (short int) p_2_[i];
+	    		meas[0] = (short int) p_1_[(cube_chain_.size() - 1) - i];
+	    		meas[1] = (short int) p_2_[(cube_chain_.size() - 1) - i];
 
 	    		// Convert in TICK
 	    		if (meas_unit_ == DEG){
@@ -544,7 +545,7 @@ void qb_class::move() {
 	    	// Command cubes in percents
 
 	    	for (int i = hand_chain_.size(); i--;)
-	    		hand_chain_[i]->setPosPerc(pos_[i]);
+	    		hand_chain_[i]->setPosPerc(pos_[(cube_chain_.size() - 1) - i]);
 
 	    }else{
 
@@ -552,8 +553,8 @@ void qb_class::move() {
 	    	short int meas[2];
 
 	    	for (int i = hand_chain_.size(); i--;){
-	    		meas[0] = (short int) pos_[i];
-	    		meas[1] = (short int) pos_[i];
+	    		meas[0] = (short int) pos_[(cube_chain_.size() - 1) - i];
+	    		meas[1] = (short int) pos_[(cube_chain_.size() - 1) - i];
 
 	    		hand_chain_[i]->setInputs(meas);
 	    	}
@@ -583,6 +584,7 @@ void qb_class::spin(){
 	}
 
 	// 1/step_time is the rate in Hz 
+	
 	ros::Rate loop_rate(1.0 / step_time_);
 
 	while(ros::ok()){

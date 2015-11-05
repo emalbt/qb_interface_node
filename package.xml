@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>qb_interface</name>
-  <version>0.0.0</version>
+  <version>1.0.0</version>
   <description>The qb_interface package</description>
 
   <maintainer email="tommasopardi@qbrobotics.com">Tommaso Pardi</maintainer>

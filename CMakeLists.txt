@@ -4,7 +4,7 @@ project(qb_interface)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED roscpp message_generation std_msgs)
+find_package(catkin REQUIRED message_generation roscpp std_msgs)
 
 add_definitions(-std=c++11)
 
@@ -193,3 +193,6 @@ include_directories(
 add_executable(qb_interface src/main.cpp src/qb_class.cpp src/qbCube.cpp src/qbHand.cpp src/qbInterface.cpp src/qbmove_communications.cpp)
 target_link_libraries(qb_interface ${catkin_LIBRARIES})
 add_dependencies(qb_interface qb_interface_gencpp)
+
+install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(DIRECTORY conf DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

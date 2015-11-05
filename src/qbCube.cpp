@@ -166,7 +166,7 @@ bool qbCube::getPosAndPreset(float* position, float* preset, angular_unit unit) 
         *position = (((float) meas[2]) / DEG_TICK_MULTIPLIER) * (M_PI / 180);
 
     // Compute preset value
-    *preset = ((float)(meas[0] - meas[1]) / 2) / DEG_TICK_MULTIPLIER;
+    *preset = fabs(((float)(meas[0] - meas[1]) / 2) / DEG_TICK_MULTIPLIER);
 
     return true;
 }
@@ -313,7 +313,7 @@ bool qbCube::getPreset(float* preset) {
         return false;
 
     // Compute preset value
-    *preset = ((float)(meas[0] - meas[1]) / 2) / DEG_TICK_MULTIPLIER;
+    *preset = fabs(((float)(meas[0] - meas[1]) / 2) / DEG_TICK_MULTIPLIER);
 
     return true;
 }
