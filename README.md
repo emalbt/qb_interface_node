@@ -49,28 +49,44 @@ IDhands: [3]
 # Communication
 Depends on your configurations several topics will be open.
 When IDcubes is set:
+
   - /qb_class/cube_ref
   - /qb_class/cube_measurement
+
   If "current" is true
+
   - /qb_class/cube_current
+  
 When IDhands is set:
+
   - /qb_class/hand_ref
   - /qb_class/hand_measurement
+  
   If "current" is true
   - /qb_class/hand_current
 
-** Message Type **
+**Message Type**
 
 [/qb_class/cube_ref]
+
 cubeRef.msg
+
 [/qb_class/cube_measurement] 
+
 When "eq_preset" is set the message type is cubeEq_preset.msg otherwise cubePos.msg
+
 [/qb_class/cube_current] 
+
 cubeCurrent.msg
 
 [/qb_class/hand_ref]
+
 handRef.msg
+
 [/qb_class/hand_measurement] 
+
 handPos.msg
+
 [/qb_class/hand_current] 
+
 handCurrent.msg
