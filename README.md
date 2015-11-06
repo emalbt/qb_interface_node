@@ -6,7 +6,7 @@ ROS node for communicate with sequence and multi-sequence of qbDevice
 2. Load all file in it, no other files are request
 
 Otherwise:
-  - .deb [indigo, jade] if you request on our website
+  - .deb [indigo, jade] if you request it on our website
 
 # Configure
 Main parameters can be configurable by a YAML file, which is request during the call to qb_interface_node with "roslaunch" method.
@@ -60,6 +60,7 @@ When IDhands is set:
   - /qb_class/hand_current
 
 ** Message Type **
+
 [/qb_class/cube_ref]
 cubeRef.msg
 [/qb_class/cube_measurement] 
