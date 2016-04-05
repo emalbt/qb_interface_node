@@ -389,7 +389,8 @@ bool qb_class::deactivate() {
 bool qb_class::readMeas(){
 
 	bool status = true;
-	short int meas[3];
+	short int meas[3] = {0, 0, 0};
+	float m_buf[3] = {0.0, 0.0, 0.0};
 
 
 	vector<float> closure;
@@ -413,24 +414,24 @@ bool qb_class::readMeas(){
 	    	}
 	    	else{
 
+
 	    		// Set right unit of measurement
 	    		if (meas_unit_ == DEG){
-        			meas[0] /= DEG_TICK_MULTIPLIER;
-					meas[1] /= DEG_TICK_MULTIPLIER;
-					meas[2] /= DEG_TICK_MULTIPLIER;
+        			m_buf[0] = (float) meas[0] / DEG_TICK_MULTIPLIER;
+					m_buf[1] = (float) meas[1] / DEG_TICK_MULTIPLIER;
+					m_buf[2] = (float) meas[2] / DEG_TICK_MULTIPLIER;
         		}
 			    else{
 			    	if (meas_unit_ == RAD){
-	        			meas[0] = (meas[0] / DEG_TICK_MULTIPLIER) * (M_PI / 180);
-						meas[1] = (meas[1] / DEG_TICK_MULTIPLIER) * (M_PI / 180);
-						meas[2] = (meas[2] / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+	        			m_buf[0] = ( (float) meas[0] / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+						m_buf[1] = ( (float) meas[1] / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+						m_buf[2] = ( (float) meas[2] / DEG_TICK_MULTIPLIER) * (M_PI / 180);
 					}
 			    }
 			        
-
-	    		pos_1.push_back(meas[0]);
-	    		pos_2.push_back(meas[1]);
-	    		pos_L.push_back(meas[2]);
+	    		pos_1.push_back(m_buf[0]);
+	    		pos_2.push_back(m_buf[1]);
+	    		pos_L.push_back(m_buf[2]);
 	    	}
 	    }
 
