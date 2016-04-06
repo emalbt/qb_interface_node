@@ -500,6 +500,7 @@ bool qb_class::readMeas(){
 
 void qb_class::move() {
 
+
     // Check if new position are received
     if ((p_1_.size() != 0) && (p_2_.size() != 0)){
 
@@ -515,22 +516,26 @@ void qb_class::move() {
 
 	    	// Command cubes in Pos1 and Pos2
 	    	short int meas[2];
+    		float f_meas[2];
 
 	    	for (int i = cube_chain_.size(); i--;){
-	    		meas[0] = (short int) p_1_[(cube_chain_.size() - 1) - i];
-	    		meas[1] = (short int) p_2_[(cube_chain_.size() - 1) - i];
+	    		f_meas[0] = p_1_[(cube_chain_.size() - 1) - i];
+	    		f_meas[1] = p_2_[(cube_chain_.size() - 1) - i];
 
 	    		// Convert in TICK
 	    		if (meas_unit_ == DEG){
-	    			meas[0] *= DEG_TICK_MULTIPLIER;
-					meas[1] *= DEG_TICK_MULTIPLIER;
+	    			f_meas[0] *= DEG_TICK_MULTIPLIER;
+					f_meas[1] *= DEG_TICK_MULTIPLIER;
 	    		}
 			    else{
 			    	if (meas_unit_ == RAD){
-	        			meas[0] = (meas[0] / (M_PI / 180)) * DEG_TICK_MULTIPLIER;
-						meas[1] = (meas[1] / (M_PI / 180)) * DEG_TICK_MULTIPLIER;
+	        			f_meas[0] = (f_meas[0] / (M_PI / 180)) * DEG_TICK_MULTIPLIER;
+						f_meas[1] = (f_meas[1] / (M_PI / 180)) * DEG_TICK_MULTIPLIER;
 					}
 			    }
+
+			    meas[0] = (short int) f_meas[0];
+			    meas[1] = (short int) f_meas[1];
 
 	    		cube_chain_[i]->setInputs(meas);
 	    	}
