@@ -81,10 +81,10 @@ bool qbHand::setPosPerc(float rateC) {
 
     short int curr_ref[2];
 
-    // Position for the 2 engine of the cube.
+    // Motor of the hand position
 
-    curr_ref[0] = rateC*POS_LIMIT_M1[1]/4;
-    curr_ref[1] = rateC*POS_LIMIT_M1[1]/4;
+    curr_ref[0] = rateC * POS_LIMIT_M1[1] / 4.0;
+    curr_ref[1] = rateC * POS_LIMIT_M1[1] / 4.0;
 
     // Call cube position
 
@@ -119,7 +119,7 @@ bool qbHand::getPosPerc(float* angle) {
 
     // Trasform in rad and return measured value
 
-    *angle = (((float) meas[0]) / DEG_TICK_MULTIPLIER) * (M_PI/180.0) / (POS_LIMIT_M1[1]/4);
+    *angle = (((float) meas[0]) / DEG_TICK_MULTIPLIER) * (M_PI/180.0) / (POS_LIMIT_M1[1] / 4);
 
     return true;
 }
@@ -146,10 +146,11 @@ void qbHand::retrieveParams() {
     for (int i = 0; i < NUM_OF_TRIALS; i++) {
         if(!commGetParam(cube_comm, ID, PARAM_POS_LIMIT, pos_limits, 4)) {
             // Save limits
-            POS_LIMIT_M1[0] = pos_limits[0]/2;
-            POS_LIMIT_M1[1] = pos_limits[1]/2;
-            POS_LIMIT_M2[0] = pos_limits[2]/2;
-            POS_LIMIT_M2[1] = pos_limits[3]/2;
+            POS_LIMIT_M1[0] = pos_limits[0] / 2;
+            POS_LIMIT_M1[1] = pos_limits[1] / 2;
+            POS_LIMIT_M2[0] = pos_limits[2] / 2;
+            POS_LIMIT_M2[1] = pos_limits[3] / 2;
+
             return;
         }
     }
