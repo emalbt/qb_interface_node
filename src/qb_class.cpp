@@ -543,7 +543,7 @@ void qb_class::move() {
 	}
     // Hands
 
-    // Check if new position are received
+    // Check if new positions are received
     if (pos_.size() != 0){
 
 	    if (flag_HCMD_type_ == PERC){
@@ -551,16 +551,16 @@ void qb_class::move() {
 	    	// Command cubes in percents
 
 	    	for (int i = hand_chain_.size(); i--;)
-	    		hand_chain_[i]->setPosPerc(pos_[(cube_chain_.size() - 1) - i]);
+	    		hand_chain_[i]->setPosPerc(pos_[(hand_chain_.size() - 1) - i]);
 
 	    }else{
 
-	    	// Command cubes in Pos1 and Pos2, TICK
+	    	// Command hand in Pos1 and Pos2, TICK
 	    	short int meas[2];
 
 	    	for (int i = hand_chain_.size(); i--;){
-	    		meas[0] = (short int) pos_[(cube_chain_.size() - 1) - i];
-	    		meas[1] = (short int) pos_[(cube_chain_.size() - 1) - i];
+	    		meas[0] = (short int) pos_[(hand_chain_.size() - 1) - i];
+	    		meas[1] = (short int) pos_[(hand_chain_.size() - 1) - i];
 
 	    		hand_chain_[i]->setInputs(meas);
 	    	}
