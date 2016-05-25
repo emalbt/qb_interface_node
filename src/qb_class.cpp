@@ -553,7 +553,7 @@ void qb_class::move() {
 
 	    if (flag_HCMD_type_ == PERC){
 
-	    	// Command cubes in percents
+	    	// Command hand in percents
 
 	    	for (int i = hand_chain_.size(); i--;)
 	    		hand_chain_[i]->setPosPerc(pos_[(hand_chain_.size() - 1) - i]);

@@ -212,12 +212,10 @@ void qbCube::setPosAndPresetPerc(float position, float stiffPerc, angular_unit u
 
     // Convert position in 'deg' if needed
 
-    if (unit == RAD) {
-
+    if (unit == RAD) 
         position *= (180.0 / M_PI);
 
-    }
-
+    
 
     // XXX TODO: Check Max Position available
 
@@ -228,7 +226,8 @@ void qbCube::setPosAndPresetPerc(float position, float stiffPerc, angular_unit u
 
     // Call API function
 
-    commSetInputs(cube_comm, ID, curr_ref);
+    commSetPosStiff(cube_comm, ID, curr_ref);
+
 }
 
 
