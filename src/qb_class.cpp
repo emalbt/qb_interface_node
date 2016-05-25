@@ -214,7 +214,7 @@ bool qb_class::open(const char* port, const int br) {
 
     // Call open communication function
 
-    if (br < 2000000)
+    if (br >= 2000000)
     	openRS485(qb_comm_, port, B2000000);
     else
     	openRS485(qb_comm_, port, B460800);
@@ -418,7 +418,6 @@ bool qb_class::readMeas(){
 	    		pos_L.push_back(NAN);
 	    	}
 	    	else{
-
 
 	    		// Set right unit of measurement
 	    		if (meas_unit_ == DEG){

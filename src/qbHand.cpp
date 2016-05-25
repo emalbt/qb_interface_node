@@ -83,8 +83,8 @@ bool qbHand::setPosPerc(float rateC) {
 
     // Motor of the hand position
 
-    curr_ref[0] = rateC * POS_LIMIT_M1[1] / 4.0;
-    curr_ref[1] = rateC * POS_LIMIT_M1[1] / 4.0;
+    curr_ref[0] = rateC * POS_LIMIT_M1[1] / 4.0 * axis_dir;
+    curr_ref[1] = rateC * POS_LIMIT_M1[1] / 4.0 * axis_dir;
 
     // Call cube position
 
@@ -119,7 +119,7 @@ bool qbHand::getPosPerc(float* angle) {
 
     // Trasform in rad and return measured value
 
-    *angle = (((float) meas[0]) / DEG_TICK_MULTIPLIER) * (M_PI/180.0) / (POS_LIMIT_M1[1] / 4);
+    *angle = (((float) meas[0]) / DEG_TICK_MULTIPLIER) * (M_PI/180.0) / (POS_LIMIT_M1[1] / 4) * axis_dir;
 
     return true;
 }

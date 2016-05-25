@@ -20,7 +20,15 @@
 
 qbInterface::qbInterface(const int id) {
 
-    ID = id;
+    // Set axis direction
+
+    if (id >= 0)
+        axis_dir = 1;
+    else
+        axis_dir = -1;
+
+    ID = abs(id);
+
     cube_comm = NULL;
 }
 
@@ -42,7 +50,15 @@ qbInterface::qbInterface(const int id) {
 
 qbInterface::qbInterface(comm_settings* cs, const int id) {
 
-    ID = id;
+    // Set axis direction
+
+    if (id >= 0)
+        axis_dir = 1;
+    else
+        axis_dir = -1;
+
+    ID = abs(id);
+
     cube_comm = cs;
 }
 
@@ -162,6 +178,10 @@ bool qbInterface::activate() {
     // Activate board
     commActivate(cube_comm, ID, 1);
 
+    // Wait setting time
+
+    usleep(1000);
+
     // Check if board is active
     char status = 0;
     commGetActivate(cube_comm, ID, &status);
@@ -241,6 +261,12 @@ bool qbInterface::getMeas(short int* meas) {
     if (commGetMeasurements(cube_comm, ID, meas))
         return false;
 
+    // Axis direction
+    
+    meas[0] *= axis_dir;
+    meas[1] *= axis_dir;
+    meas[2] *= axis_dir;
+
     return true;
 }
 
@@ -267,6 +293,11 @@ bool qbInterface::setInputs(short int* inputs) {
         cerr << "ERROR: Port not opened" << endl;
         return false;
     }
+
+    // Axis direction
+
+    inputs[0] *= axis_dir;
+    inputs[1] *= axis_dir;
 
     commSetInputs(cube_comm, ID, inputs);
 

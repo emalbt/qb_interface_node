@@ -102,6 +102,10 @@ void qbCube::setPosAndPreset(float position, float stiffPreset, angular_unit uni
         stiffPreset *= (180.0 / M_PI);
     }
 
+    // Axis Direction
+
+    position *= axis_dir;
+
     // Check Max Position available
 
     if (position > (DEFAULT_SUP_LIMIT / DEG_TICK_MULTIPLIER) - stiffPreset) {
@@ -215,7 +219,9 @@ void qbCube::setPosAndPresetPerc(float position, float stiffPerc, angular_unit u
     if (unit == RAD) 
         position *= (180.0 / M_PI);
 
-    
+    // Axis Direction
+
+    position *= axis_dir;
 
     // XXX TODO: Check Max Position available
 
@@ -284,9 +290,9 @@ bool qbCube::getPos(float* angle, angular_unit unit) {
     // Return position in the right unit
 
     if (unit == DEG)
-        *angle = (((float) meas[2]) / DEG_TICK_MULTIPLIER);
+        *angle = (((float) meas[2]) / DEG_TICK_MULTIPLIER) * axis_dir;
     else
-        *angle = (((float) meas[2]) / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+        *angle = (((float) meas[2]) / DEG_TICK_MULTIPLIER) * (M_PI / 180) * axis_dir;
 
     return true;
 }
