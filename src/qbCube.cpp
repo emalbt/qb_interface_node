@@ -97,8 +97,10 @@ void qbCube::setPosAndPreset(float position, float stiffPreset, angular_unit uni
 
     // Convert position in 'deg' if needed
 
-    if (unit == RAD)
+    if (unit == RAD){
         position *= (180.0 / M_PI);
+        stiffPreset *= (180.0 / M_PI);
+    }
 
     // Check Max Position available
 

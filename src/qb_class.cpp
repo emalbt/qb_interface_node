@@ -21,6 +21,7 @@ qb_class::qb_class(){
 	// Variables to get param 
 	vector<int> ID_cube, ID_hand;
 	int unit;
+	int br;
 
 	string port;
 	string aux;
@@ -36,6 +37,7 @@ qb_class::qb_class(){
 	node_->param("/current", flag_curr_type_, false);
 	node_->param<double>("/step_time", step_time_, 0.002);
 	node_->param<string>("/port", port, "/dev/ttyUSB0");
+	node_->param<int>("/baudrate", br, 460800);
 
 	node_->searchParam("/IDcubes", aux);
 	node_->getParam(aux, ID_cube);
@@ -66,7 +68,7 @@ qb_class::qb_class(){
 
 	// Open port 
 
-	if (!open(port.c_str())){
+	if (!open(port.c_str(), br)){
 		qb_comm_ = NULL;
 
 		cout << "[ERROR] USB " << port << " was not open correctly." << endl;
@@ -202,7 +204,7 @@ qb_class::~qb_class(){
 /
 */
 
-bool qb_class::open(const char* port) {
+bool qb_class::open(const char* port, const int br) {
 
     // Check connection state
     if (qb_comm_ != NULL)
@@ -212,7 +214,10 @@ bool qb_class::open(const char* port) {
 
     // Call open communication function
 
-    openRS485(qb_comm_, port);
+    if (br < 2000000)
+    	openRS485(qb_comm_, port, B2000000);
+    else
+    	openRS485(qb_comm_, port, B460800);
 
     if (qb_comm_->file_handle == INVALID_HANDLE_VALUE)
    		return false;
@@ -508,9 +513,9 @@ void qb_class::move() {
 	    if (flagCMD_type_ == EQ_PRESET){
 
 		    	// Command cubes in Equilibrium Position and Preset
-		    	for (int i = cube_chain_.size(); i--;){
+		    	for (int i = cube_chain_.size(); i--;)
 		    		cube_chain_[i]->setPosAndPreset(p_1_[(cube_chain_.size() - 1) - i], p_2_[(cube_chain_.size() - 1) - i], meas_unit_);
-		    	}
+		    	
 		    	
 	    }else{
 
@@ -529,8 +534,8 @@ void qb_class::move() {
 	    		}
 			    else{
 			    	if (meas_unit_ == RAD){
-	        			f_meas[0] = (f_meas[0] / (M_PI / 180)) * DEG_TICK_MULTIPLIER;
-						f_meas[1] = (f_meas[1] / (M_PI / 180)) * DEG_TICK_MULTIPLIER;
+	        			f_meas[0] = (f_meas[0] / (M_PI / 180.0)) * DEG_TICK_MULTIPLIER;
+						f_meas[1] = (f_meas[1] / (M_PI / 180.0)) * DEG_TICK_MULTIPLIER;
 					}
 			    }
 

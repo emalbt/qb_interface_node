@@ -6,7 +6,7 @@ int main(int argc, char** argv){
 
     qb_class qb_int;
 
-    cout << "[INFO] Start to spin" << endl;
+    cout << "[INFO] Start to spin qb_interface_node" << endl;
 
     qb_int.spin();
 
