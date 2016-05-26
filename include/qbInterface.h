@@ -4,6 +4,7 @@
 #include <string.h>
 #include <iostream>
 #include <math.h>
+#include <unistd.h>
 
 #include "qbmove_communications.h"
 #include "definitions.h"
@@ -79,6 +80,7 @@ class qbInterface
 
     protected:
         int ID;
+        int axis_dir;
 
     private:
 

@@ -50,7 +50,7 @@ class qb_class{
 		// Functions
 
 		// Open communication
-		bool open(const char*);
+		bool open(const char*, const int);
 
 		// Close communication
 		bool close();
