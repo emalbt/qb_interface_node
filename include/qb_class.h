@@ -64,6 +64,9 @@ class qb_class{
 		// Read positions 
 		bool readMeas();
 
+		// Read positions and currents
+		bool readMeasCurrent();
+
 		// Move cubes and hands
 		void move();
 
@@ -81,7 +84,7 @@ class qb_class{
 
 		void sendCurrent(vector<int>);
 		void sendCurrent(vector<int>, vector<int>);
-
+		
 		// Variables
 
 		vector<qbCube*> cube_chain_;

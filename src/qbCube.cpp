@@ -100,11 +100,16 @@ void qbCube::setPosAndPreset(float position, float stiffPreset, angular_unit uni
     if (unit == RAD){
         position *= (180.0 / M_PI);
         stiffPreset *= (180.0 / M_PI);
+    }else{
+        if (unit == TICK){
+            position /= DEG_TICK_MULTIPLIER;
+            stiffPreset /= DEG_TICK_MULTIPLIER;
+        }
     }
 
     // Axis Direction
 
-    position *= axis_dir;
+    position *= axis_dir_;
 
     // Check Max Position available
 
@@ -132,7 +137,7 @@ void qbCube::setPosAndPreset(float position, float stiffPreset, angular_unit uni
 
     // Call API function
 
-    commSetInputs(cube_comm, ID, curr_ref);
+    commSetInputs(cube_comm_, id_, curr_ref);
 }
 
 
@@ -166,10 +171,20 @@ bool qbCube::getPosAndPreset(float* position, float* preset, angular_unit unit) 
 
     // Return position in the right unit
 
-    if (unit == DEG)
+    if (unit == DEG){
         *position = (((float) meas[2]) / DEG_TICK_MULTIPLIER);
-    else
-        *position = (((float) meas[2]) / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+        *preset = fabs(((float)(meas[0] - meas[1]) / 2) / DEG_TICK_MULTIPLIER);
+    }
+    else{
+        if (unit == RAD){
+            *position = (((float) meas[2]) / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+            *preset = fabs((((float)(meas[0] - meas[1]) / 2) / DEG_TICK_MULTIPLIER) * (M_PI / 180));
+        }
+        else{
+            *position = (float) meas[2];
+            *preset = fabs(((float)(meas[0] - meas[1]) / 2));
+        }
+    }
 
     // Compute preset value
     *preset = fabs(((float)(meas[0] - meas[1]) / 2) / DEG_TICK_MULTIPLIER);
@@ -218,10 +233,13 @@ void qbCube::setPosAndPresetPerc(float position, float stiffPerc, angular_unit u
 
     if (unit == RAD) 
         position *= (180.0 / M_PI);
+    else
+        if (unit == TICK)
+            position /= DEG_TICK_MULTIPLIER;
 
     // Axis Direction
 
-    position *= axis_dir;
+    position *= axis_dir_;
 
     // XXX TODO: Check Max Position available
 
@@ -232,7 +250,7 @@ void qbCube::setPosAndPresetPerc(float position, float stiffPerc, angular_unit u
 
     // Call API function
 
-    commSetPosStiff(cube_comm, ID, curr_ref);
+    commSetPosStiff(cube_comm_, id_, curr_ref);
 
 }
 
@@ -290,9 +308,12 @@ bool qbCube::getPos(float* angle, angular_unit unit) {
     // Return position in the right unit
 
     if (unit == DEG)
-        *angle = (((float) meas[2]) / DEG_TICK_MULTIPLIER) * axis_dir;
+        *angle = (((float) meas[2]) / DEG_TICK_MULTIPLIER);
     else
-        *angle = (((float) meas[2]) / DEG_TICK_MULTIPLIER) * (M_PI / 180) * axis_dir;
+        if (unit == RAD)
+            *angle = (((float) meas[2]) / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+        else
+            *angle = (float) meas[2];
 
     return true;
 }
@@ -311,7 +332,7 @@ bool qbCube::getPos(float* angle, angular_unit unit) {
 /
 */
 
-bool qbCube::getPreset(float* preset) {
+bool qbCube::getPreset(float* preset, angular_unit unit) {
 
     short int meas[3];
 
@@ -319,8 +340,13 @@ bool qbCube::getPreset(float* preset) {
     if(!getMeas(meas))
         return false;
 
-    // Compute preset value
-    *preset = fabs(((float)(meas[0] - meas[1]) / 2) / DEG_TICK_MULTIPLIER);
+    if (unit == DEG)
+        *preset = fabs(((float)(meas[0] - meas[1]) / 2) / DEG_TICK_MULTIPLIER);
+    else
+        if (unit == RAD)
+            *preset = fabs((((float)(meas[0] - meas[1]) / 2) / DEG_TICK_MULTIPLIER) * (M_PI / 180.0));
+        else
+            *preset = fabs(((float)(meas[0] - meas[1]) / 2));    
 
     return true;
 }
@@ -346,5 +372,114 @@ bool qbCube::getPresetPerc(float* preset) {
 
     return true;
 }
+
+
+//-----------------------------------------------------
+//                                         getPPAndCurr
+//-----------------------------------------------------
+
+/*
+/ *****************************************************
+/ Get positions (Pos and Preset) and current for each 
+/ motor, default input is set to radiants
+/ *****************************************************
+/   argumnets:
+/       - position, reference angle
+/       - stiffPreset, stiffness preset
+/       - unit, measurement unit for position
+/               and stiffness [rad or deg]
+/   return:
+/       true  on success
+/       false on failure
+/
+*/
+
+bool qbCube::getPPAndCurr(float* position, float* preset, float* current, angular_unit unit) {
+     
+    short int meas[3], curr[2];
+     
+    // Get position measurements and currents
+    if(!getMeasAndCurr(meas, curr))
+        return false;
+
+    // Return position in the right unit
+    if (unit == DEG){
+        *position = (((float) meas[2]) / DEG_TICK_MULTIPLIER);
+        *preset = fabs(((float)(meas[0] - meas[1]) / 2) / DEG_TICK_MULTIPLIER);
+    }
+    else{
+        if (unit == RAD){
+            *position = (((float) meas[2]) / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+            *preset = fabs((((float)(meas[0] - meas[1]) / 2) / DEG_TICK_MULTIPLIER) * (M_PI / 180));
+        }
+        else{
+            *position = (float) meas[2];
+            *preset = fabs(((float)(meas[0] - meas[1]) / 2));
+        }
+    }
+
+    // Compute preset value
+    *preset = fabs(((float)(meas[0] - meas[1]) / 2) / DEG_TICK_MULTIPLIER);
+
+    current[0] = curr[0];
+    current[1] = curr[1];
+
+    return true;
+}
+
+//-----------------------------------------------------
+//                                       getMeasAndCurr
+//-----------------------------------------------------
+
+/*
+/ *****************************************************
+/ Get positions (Pos and Preset) and current for each 
+/ motor, default input is set to radiants
+/ *****************************************************
+/   arguments:
+/       - position, measured angle
+/       - current, current measured
+/       - unit, measurement unit for position
+/               and stiffness [rad or deg]
+/   return:
+/       true  on success
+/       false on failure
+/
+*/
+
+bool qbCube::getPosAndCurr(float* position, float* current, angular_unit unit) {
+     
+    short int meas[3], curr[2];     
+
+    // Get position measurements and currents
+    if(!getMeasAndCurr(meas, curr))
+        return false;
+
+    // Return position in the right unit
+ 
+    if (unit == DEG){
+
+        position[0] = (((float) meas[0]) / DEG_TICK_MULTIPLIER);
+        position[1] = (((float) meas[1]) / DEG_TICK_MULTIPLIER);
+        position[2] = (((float) meas[2]) / DEG_TICK_MULTIPLIER);
+
+    }
+    else
+        if (unit == RAD){
+            position[0] = (((float) meas[0]) / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+            position[1] = (((float) meas[1]) / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+            position[2] = (((float) meas[2]) / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+        }else {
+            position[0] = (float) meas[0];
+            position[1] = (float) meas[1];
+            position[2] = (float) meas[2];
+        }
+
+    current[0] = curr[0];
+    current[1] = curr[1];
+
+    return true;
+}
+
 
 /* END OF FILE */

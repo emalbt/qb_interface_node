@@ -34,6 +34,10 @@ class qbHand : public qbInterface
         // Get Measurement in angle of the hand closure
         bool getPosPerc(float*);
 
+        //------------------------------ getAngle
+        // Get Position and Current of the hand closure
+        bool getPosAndCurr(float*, float*, angular_unit);
+
         //------------------------------ init
         // Inizialize default values for the cube
         void retrieveParams();
@@ -41,7 +45,7 @@ class qbHand : public qbInterface
     protected:
 
         // Position limit for motors
-        int POS_LIMIT_M1[2], POS_LIMIT_M2[2];
+        int POS_LIMIT_M1_[2], POS_LIMIT_M2_[2];
 
     private:
 

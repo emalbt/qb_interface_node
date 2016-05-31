@@ -1,3 +1,4 @@
+
 // Copyright (c) 2012, qbrobotics.
 // All rights reserved.
 //
@@ -64,6 +65,13 @@
     #include <linux/serial.h>
 #endif
 
+#if (defined(__APPLE__))
+    #include <IOKit/IOKitLib.h>
+    #include <IOKit/serial/IOSerialKeys.h>
+    #include <IOKit/serial/ioss.h>
+    #include <IOKit/IOBSD.h>
+#endif
+
 #include "qbmove_communications.h"
 #include "commands.h"
 
@@ -84,7 +92,6 @@
 
 
 #define BUFFER_SIZE 500    ///< Size of buffers that store communication packets
-
 
 //#define VERBOSE                 ///< Used for debugging
 
@@ -183,7 +190,7 @@ int RS485listPorts( char list_of_ports[10][255] )
         }
     }
 
-    (void)closedir(directory);
+    (void) closedir(directory);
 
     return i;
 
@@ -271,6 +278,10 @@ error:
 
     struct termios options;
 
+    #if (defined __APPLE__)
+    speed_t custom_baudrate = BAUD_RATE;
+    #endif
+
     comm_settings_t->file_handle =
         open(port_s, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
@@ -293,31 +304,69 @@ error:
         goto error;
     }
 
+#if (defined __APPLE__)
+
+    // set baud rate
+    if (BAUD_RATE > 460800){
+
+      // cfmakeraw(&options);
+
+      cfsetispeed(&options, 300);
+      cfsetospeed(&options, 300);
+
+      // enable the receiver and set local mode
+      options.c_cflag |= (CLOCAL | CREAD);
+
+      // enable flags
+      options.c_cflag &= ~PARENB;
+      //options.c_cflag &= ~CSTOPB;
+      options.c_cflag &= ~CSIZE;
+      options.c_cflag |= CS8;
+
+      //disable flags
+      options.c_cflag &= ~CRTSCTS;
+      options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+      options.c_oflag &= ~OPOST;
+      options.c_iflag &= ~(IXON | IXOFF | IXANY | INLCR);
+
+      options.c_cc[VMIN] = 0;
+      options.c_cc[VTIME] = 0;
+      // Set not-standard BAUDRATE bypassing termios.h
+
+      if (ioctl(comm_settings_t->file_handle, IOSSIOSPEED, &custom_baudrate))
+          goto error;
+
+    }
+    else{
+
+      cfsetispeed(&options, BAUD_RATE);
+      cfsetospeed(&options, BAUD_RATE);
+
+      // enable the receiver and set local mode
+      options.c_cflag |= (CLOCAL | CREAD);
+
+      // enable flags
+      options.c_cflag &= ~PARENB;
+      //options.c_cflag &= ~CSTOPB;
+      options.c_cflag &= ~CSIZE;
+      options.c_cflag |= CS8;
+
+      //disable flags
+      options.c_cflag &= ~CRTSCTS;
+      options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+      options.c_oflag &= ~OPOST;
+      options.c_iflag &= ~(IXON | IXOFF | IXANY | INLCR);
+
+      options.c_cc[VMIN] = 0;
+      options.c_cc[VTIME] = 0;
+
+    }
+
+#else
+
     // set baud rate
     cfsetispeed(&options, BAUD_RATE);
     cfsetospeed(&options, BAUD_RATE);
-
-#if (defined __APPLE__)
-
-    // enable the receiver and set local mode
-    options.c_cflag |= (CLOCAL | CREAD);
-
-    // enable flags
-    options.c_cflag &= ~PARENB;
-    //options.c_cflag &= ~CSTOPB;
-    options.c_cflag &= ~CSIZE;
-    options.c_cflag |= CS8;
-
-    //disable flags
-    options.c_cflag &= ~CRTSCTS;
-    options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-    options.c_oflag &= ~OPOST;
-    options.c_iflag &= ~(IXON | IXOFF | IXANY | INLCR);
-
-    options.c_cc[VMIN] = 0;
-    options.c_cc[VTIME] = 0;
-
-#else
 
     cfmakeraw(&options);
 
@@ -329,7 +378,6 @@ error:
     ioctl(comm_settings_t->file_handle, TIOCGSERIAL, &serinfo);
     serinfo.flags |= ASYNC_LOW_LATENCY;
     ioctl(comm_settings_t->file_handle, TIOCSSERIAL, &serinfo);
-
 #endif
 
     // save changes
@@ -345,7 +393,6 @@ error:
     }
 
     comm_settings_t->file_handle = INVALID_HANDLE_VALUE;
-
 #endif
 }
 
@@ -375,8 +422,8 @@ void closeRS485(comm_settings *comm_settings_t)
 long timevaldiff(struct timeval *starttime, struct timeval *finishtime)
 {
     long usec;
-    usec=(finishtime->tv_sec-starttime->tv_sec)*1000000;
-    usec+=(finishtime->tv_usec-starttime->tv_usec);
+    usec = (finishtime->tv_sec - starttime->tv_sec) * 1000000;
+    usec += (finishtime->tv_usec - starttime->tv_usec);
     return usec;
 }
 
@@ -389,18 +436,10 @@ long timevaldiff(struct timeval *starttime, struct timeval *finishtime)
 
 int RS485read(comm_settings *comm_settings_t, int id, char *package)
 {
-    unsigned char data_in[BUFFER_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};     // output data buffer
+    unsigned char data_in[BUFFER_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};     // output data buffer
     unsigned int package_size = 6;
 
     memcpy(package, data_in, package_size);
-
-  /*  package[1] = 0;
-    package[2] = 0;
-    package[3] = 0;
-    package[4] = 0;
-    package[5] = 0;
-    package[6] = 0;
-    */
 
 // WINDOWS
 #if (defined(_WIN32) || defined(_WIN64))
@@ -429,22 +468,19 @@ int RS485read(comm_settings *comm_settings_t, int id, char *package)
 
     ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
 
-    while((n_bytes < 4) && ( timevaldiff(&start, &now) < 4000)) {
+    while((n_bytes < 4) && ( timevaldiff(&start, &now) < READ_TIMEOUT)) {
         gettimeofday(&now, NULL);
         ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
     }
 
-    if (!read(comm_settings_t->file_handle, data_in, 4)) {
-      //  printf("XXX 0 \n");
+    if (!read(comm_settings_t->file_handle, data_in, 4)) 
         return -1;
-    }
+    
 
     // Control ID
-    if ((id != 0) && (data_in[2] != id)) {
-      //  printf("XXX 1  \n");
-        return -1;
-    }
-
+    if ((id != 0) && (data_in[2] != id))
+        return -2;
+    
 
     package_size = data_in[3];
 
@@ -453,24 +489,20 @@ int RS485read(comm_settings *comm_settings_t, int id, char *package)
 
     ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
 
-    while((n_bytes < package_size) && ( timevaldiff(&start, &now) < 4000)) {
+    while((n_bytes < package_size) && ( timevaldiff(&start, &now) < READ_TIMEOUT)) {
         gettimeofday(&now, NULL);
         ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
     }
 
-    if (!read(comm_settings_t->file_handle, data_in, package_size)) {
-        //printf("XXX 2\n");
-        return -1;
-    }
-
+    if (!read(comm_settings_t->file_handle, data_in, package_size)) 
+        return -3;
+    
 #endif
 
     // Control checksum
-    if (checksum ( (char *) data_in, package_size - 1) != (char) data_in[package_size-1]) {
-	//printf("XXX 3 %#x ",checksum ( (char *) data_in, package_size - 1));
-        //hexdump(data_in, package_size );
+    if (checksum ( (char *) data_in, package_size - 1) != (char) data_in[package_size - 1]) 
        return -1;
-    }
+    
 
 #ifdef VERBOSE
     printf("Received package size: %d \n", package_size);
@@ -727,6 +759,84 @@ void commActivate(comm_settings *comm_settings_t, int id, char activate) {
     ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
     if(n_bytes)
         read(comm_settings_t->file_handle, package_in, n_bytes);
+
+    write(comm_settings_t->file_handle, data_out, 7);
+#endif
+
+}
+
+
+//==============================================================================
+//                                                               commSetBaudRate
+//==============================================================================
+// This function set baudrate of communication
+//==============================================================================
+
+
+void commSetBaudRate(comm_settings *comm_settings_t, int id, short int baudrate) {
+
+    char data_out[BUFFER_SIZE];             // output data buffer
+
+#if (defined(_WIN32) || defined(_WIN64))
+    DWORD package_size_out;             // for serial port access
+#else
+    int n_bytes;
+    char package_in[BUFFER_SIZE];
+#endif
+
+    data_out[0] = ':';
+    data_out[1] = ':';
+    data_out[2] = (unsigned char) id;
+    data_out[3] = 3;
+    data_out[4] = CMD_SET_BAUDRATE;                         // command
+    data_out[5] = (baudrate == BAUD_RATE_T_2000000) ? 3 : 13; // Set Prescaler
+    data_out[6] = checksum(data_out + 4, 2);                // checksum
+
+#if (defined(_WIN32) || defined(_WIN64))
+    WriteFile(comm_settings_t->file_handle, data_out, 7, &package_size_out, NULL);
+#else
+    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
+    if(n_bytes)
+        read(comm_settings_t->file_handle, package_in, n_bytes);
+
+    write(comm_settings_t->file_handle, data_out, 7);
+#endif
+
+}
+
+//==============================================================================
+//                                                               commSetWatchDog
+//==============================================================================
+// This function set watchdog timer period.
+//==============================================================================
+
+
+void commSetWatchDog(comm_settings *comm_settings_t, int id, short int wdt) {
+
+    char data_out[BUFFER_SIZE];             // output data buffer
+
+#if (defined(_WIN32) || defined(_WIN64))
+    DWORD package_size_out;             // for serial port access
+#else
+    int n_bytes;
+    char package_in[BUFFER_SIZE];
+#endif
+
+    data_out[0] = ':';
+    data_out[1] = ':';
+    data_out[2] = (unsigned char) id;
+    data_out[3] = 3;
+    data_out[4] = CMD_SET_WATCHDOG;                         // command
+    data_out[5] = (wdt / 2);                                // Set WDT Timer period
+    data_out[6] = checksum(data_out + 4, 2);                // checksum
+
+#if (defined(_WIN32) || defined(_WIN64))
+    WriteFile(comm_settings_t->file_handle, data_out, 7, &package_size_out, NULL);
+#else
+    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
+    if(n_bytes)
+        read(comm_settings_t->file_handle, package_in, n_bytes);
+
     write(comm_settings_t->file_handle, data_out, 7);
 #endif
 
@@ -961,11 +1071,8 @@ int commGetMeasurements(comm_settings *comm_settings_t, int id, short int measur
 #endif
 
     package_in_size = RS485read(comm_settings_t, id, package_in);
-    if (package_in_size == -1){
-       // printf("sono qui api\n");
-
+    if (package_in_size == -1)
         return -1;
-    }
 
 //==============================================================	 get packet
 
@@ -1251,12 +1358,11 @@ int commGetInfo(comm_settings *comm_settings_t, int id, short int info_type, cha
     data_out[4] = CMD_GET_INFO;                        // command
     data_out[5] = ((unsigned char *) &info_type)[1];   // parameter type
     data_out[6] = ((unsigned char *) &info_type)[0];   // parameter type
-    data_out[7] = 0;
-    data_out[8] = checksum(data_out + 4, 4);           // checksum
+    data_out[7] = checksum(data_out + 4, 3);           // checksum
 
 
 #if (defined(_WIN32) || defined(_WIN64))
-    WriteFile(comm_settings_t->file_handle, data_out, 9, &package_size_out, NULL);
+    WriteFile(comm_settings_t->file_handle, data_out, 8, &package_size_out, NULL);
 
     n_bytes_in = 1;
 
@@ -1271,14 +1377,16 @@ int commGetInfo(comm_settings *comm_settings_t, int id, short int info_type, cha
 
 #else
 
-    write(comm_settings_t->file_handle, data_out, 9);
+    write(comm_settings_t->file_handle, data_out, 8);
 
     usleep(200000);
 
     while(1) {
         usleep(50000);
+
         if(ioctl(comm_settings_t->file_handle, FIONREAD, &bytes) < 0)
             break;
+
         if(bytes == 0)
             break;
 
@@ -1470,6 +1578,11 @@ int commSetParam(  comm_settings *comm_settings_t,
             value_size  = 4;
             break;
 
+        case PARAM_PID_CURR_CONTROL:
+            value       = (float *) values;
+            value_size  = 4;
+            break;
+
         case PARAM_STARTUP_ACTIVATION:
             value       = (unsigned char *) values;
             value_size  = 1;
@@ -1546,8 +1659,18 @@ int commSetParam(  comm_settings *comm_settings_t,
             value_size  = 1;
             break;
 
-        default:
+        case PARAM_DOUBLE_ENC_ON_OFF:
+            value       = (uint8_t *) values;
+            value_size  = 1;
             break;
+
+        case PARAM_MOT_HANDLE_RATIO:
+            value       = (int8_t *) values;
+            value_size  = 1;
+            break;
+
+        default:
+            return -1;
     }
 
 
@@ -1583,10 +1706,14 @@ int commSetParam(  comm_settings *comm_settings_t,
 
     package_in_size = RS485read(comm_settings_t, id, package_in);
 
-    if (package_in_size == -1) {
+    if ( (package_in_size == -1) || (package_in[0] == ACK_ERROR) ) {
         return -1;
-    } else {
+    }
+
+    if (package_in[0] == ACK_OK) {
         return 0;
+    } else {
+        return -1;
     }
 }
 
@@ -1617,6 +1744,10 @@ int commGetParam(comm_settings *comm_settings_t,
             break;
 
         case PARAM_PID_CONTROL:
+            value_size = 4;
+            break;
+
+        case PARAM_PID_CURR_CONTROL:
             value_size = 4;
             break;
 
@@ -1677,6 +1808,14 @@ int commGetParam(comm_settings *comm_settings_t,
             break;
 
         case PARAM_EMG_SPEED:
+            value_size = 1;
+            break;
+
+        case PARAM_DOUBLE_ENC_ON_OFF:
+            value_size = 1;
+            break;
+
+        case PARAM_MOT_HANDLE_RATIO:
             value_size = 1;
             break;
 
@@ -1762,10 +1901,14 @@ int commStoreParams( comm_settings *comm_settings_t, int id ) {
     usleep(100000);
     package_in_size = RS485read(comm_settings_t, id, package_in);
 
-    if (package_in_size == -1) {
+    if ( (package_in_size == -1) || (package_in[0] == ACK_ERROR) ) {
         return -1;
-    } else {
+    }
+
+    if (package_in[0] == ACK_OK) {
         return 0;
+    } else {
+        return -1;
     }
 }
 
@@ -1890,7 +2033,7 @@ int commInitMem(comm_settings *comm_settings_t, int id) {
     write(comm_settings_t->file_handle, data_out, 6);
 #endif
 
-    usleep(200000);
+    usleep(300000);
     package_in_size = RS485read(comm_settings_t, id, package_in);
 
     if (package_in_size == -1) {

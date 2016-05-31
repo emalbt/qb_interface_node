@@ -21,7 +21,6 @@ class qbCube : public qbInterface
         // Distructor of qbCube class
         ~qbCube();
 
-
         // ------------------------------
         //      Other Functions
         // ------------------------------
@@ -48,11 +47,19 @@ class qbCube : public qbInterface
 
         //------------------------------ getPreset
         // Get preset of the cube
-        bool getPreset(float*);
+        bool getPreset(float*, angular_unit = RAD);
 
         //------------------------------ getPresetPerc
         // Get preset of the cube
         bool getPresetPerc(float*);
+
+        //------------------------------ getPosAndCurr
+        // Get P1/P2/PL measurements and currents of the cube
+        bool getPosAndCurr(float*, float*, angular_unit = RAD);
+
+        //------------------------------ getPPAndCurr
+        // Get Eq. position/Preset and currents of the cube
+        bool getPPAndCurr(float*, float*, float*, angular_unit = RAD);
 
 
     protected:

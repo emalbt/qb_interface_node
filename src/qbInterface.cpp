@@ -23,13 +23,13 @@ qbInterface::qbInterface(const int id) {
     // Set axis direction
 
     if (id >= 0)
-        axis_dir = 1;
+        axis_dir_ = 1;
     else
-        axis_dir = -1;
+        axis_dir_ = -1;
 
-    ID = abs(id);
+    id_ = abs(id);
 
-    cube_comm = NULL;
+    cube_comm_ = NULL;
 }
 
 
@@ -53,13 +53,13 @@ qbInterface::qbInterface(comm_settings* cs, const int id) {
     // Set axis direction
 
     if (id >= 0)
-        axis_dir = 1;
+        axis_dir_ = 1;
     else
-        axis_dir = -1;
+        axis_dir_ = -1;
 
-    ID = abs(id);
+    id_ = abs(id);
 
-    cube_comm = cs;
+    cube_comm_ = cs;
 }
 
 
@@ -106,18 +106,18 @@ bool qbInterface::open(const char* port) {
 
     // Check Connection State
 
-    if(cube_comm != NULL) {
+    if(cube_comm_ != NULL) {
         cerr << "WARNING: Port already opened" << endl;
         return false;
     }
 
-    cube_comm = new comm_settings;
+    cube_comm_ = new comm_settings;
 
     // Establish serial connection
 
-    openRS485(cube_comm, port);
+    openRS485(cube_comm_, port);
 
-    if (cube_comm->file_handle == INVALID_HANDLE_VALUE) {
+    if (cube_comm_->file_handle == INVALID_HANDLE_VALUE) {
         cerr << "ERROR: Unable to open port" << endl;
         return false;
     }
@@ -144,10 +144,10 @@ void qbInterface::close() {
     deactivate();
 
     // close commnication
-    if (cube_comm != NULL) {
-        closeRS485(cube_comm);
-        delete cube_comm;
-        cube_comm = NULL;
+    if (cube_comm_ != NULL) {
+        closeRS485(cube_comm_);
+        delete cube_comm_;
+        cube_comm_ = NULL;
     }
 }
 
@@ -169,26 +169,27 @@ void qbInterface::close() {
 
 bool qbInterface::activate() {
 
+    char status = 0;
+
     // Check connection status
-    if (cube_comm == NULL) {
+    if (cube_comm_ == NULL) {
         cerr << "ERROR:[qbInterface activate()] Port not opened" << endl;
         return false;
     }
 
     // Activate board
-    commActivate(cube_comm, ID, 1);
+    commActivate(cube_comm_, id_, 1);
 
     // Wait setting time
 
     usleep(1000);
 
     // Check if board is active
-    char status = 0;
-    commGetActivate(cube_comm, ID, &status);
+    commGetActivate(cube_comm_, id_, &status);
 
     // Check status
     if (!status){
-        cerr << "Unable to activate ID: " << ID <<  endl;
+        cerr << "Unable to activate ID: " << id_ <<  endl;
         return false;
     }
 
@@ -213,18 +214,22 @@ bool qbInterface::activate() {
 
 bool qbInterface::deactivate() {
 
+    char status = 0;
+
     // Check connection status
-    if (cube_comm == NULL){
+    if (cube_comm_ == NULL){
         //cerr << "ERROR: Port not opened" << endl;
         return false;
     }
 
     // Deactivate board
-    commActivate(cube_comm, ID, 0);
+    commActivate(cube_comm_, id_, 0);
+
+    // Wait setting time
+    usleep(1000);
 
     // Check if the board is inactive
-    char status;
-    commGetActivate(cube_comm, ID, &status);
+    commGetActivate(cube_comm_, id_, &status);
 
     if (status) {
         cerr << "Unable to deactivate" << endl;
@@ -253,19 +258,19 @@ bool qbInterface::deactivate() {
 
 bool qbInterface::getMeas(short int* meas) {
 
-    if (cube_comm == NULL) {
+    if (cube_comm_ == NULL) {
         cerr << "ERROR: Port not opened" << endl;
         return false;
     }
 
-    if (commGetMeasurements(cube_comm, ID, meas))
+    if (commGetMeasurements(cube_comm_, id_, meas))
         return false;
 
     // Axis direction
     
-    meas[0] *= axis_dir;
-    meas[1] *= axis_dir;
-    meas[2] *= axis_dir;
+    meas[0] *= axis_dir_;
+    meas[1] *= axis_dir_;
+    meas[2] *= axis_dir_;
 
     return true;
 }
@@ -289,17 +294,17 @@ bool qbInterface::getMeas(short int* meas) {
 
 bool qbInterface::setInputs(short int* inputs) {
 
-    if (cube_comm == NULL) {
+    if (cube_comm_ == NULL) {
         cerr << "ERROR: Port not opened" << endl;
         return false;
     }
 
     // Axis direction
 
-    inputs[0] *= axis_dir;
-    inputs[1] *= axis_dir;
+    inputs[0] *= axis_dir_;
+    inputs[1] *= axis_dir_;
 
-    commSetInputs(cube_comm, ID, inputs);
+    commSetInputs(cube_comm_, id_, inputs);
 
     return true;
 }
@@ -320,9 +325,52 @@ bool qbInterface::setInputs(short int* inputs) {
 
 int qbInterface::getID() {
 
-    return ID;
+    return id_;
 }
 
+//-----------------------------------------------------
+//                                       getMeasAndCurr
+//-----------------------------------------------------
+
+/*
+/ *****************************************************
+/ Get measurement of positions [1, 2, 3]  in ticks and
+/ currents of [1, 2] motors
+/ *****************************************************
+/   arguments:
+/       - curr, 3 elements array pointer for measurements
+/       - meas, 3 elements array pointer for measurements
+/   return:
+/       true  on success
+/       false on failure
+/
+*/
+
+bool qbInterface::getMeasAndCurr(short int* meas, short int* curr) {
+
+    short int aux[5];
+
+    if (cube_comm_ == NULL) {
+        cerr << "ERROR: Port not opened" << endl;
+        return false;
+    }
+
+    if (commGetCurrAndMeas(cube_comm_, id_, aux))
+        return false;
+
+    // Current
+
+    curr[0] = aux[0];
+    curr[1] = aux[1];
+
+    // Motor pos and axis direction
+    
+    meas[0] = aux[2] * axis_dir_;
+    meas[1] = aux[3] * axis_dir_;
+    meas[2] = aux[4] * axis_dir_;
+
+    return true;
+}
 
 
 /* END OF FILE */

@@ -226,12 +226,12 @@ bool qb_class::open(const char* port, const int br) {
     // Set all cubes communication
 
     for (int i = cube_chain_.size(); i--;)
-            cube_chain_[i]->cube_comm = qb_comm_;
+            cube_chain_[i]->cube_comm_ = qb_comm_;
 
     // Set all hands communication
 
     for (int i = hand_chain_.size(); i--;)
-            hand_chain_[i]->cube_comm = qb_comm_;
+            hand_chain_[i]->cube_comm_ = qb_comm_;
 
 
     return true;
@@ -270,12 +270,12 @@ bool qb_class::close() {
     // Set all cubes communication
 
     for (int i = cube_chain_.size(); i--;)
-		cube_chain_[i]->cube_comm = qb_comm_;
+		cube_chain_[i]->cube_comm_ = qb_comm_;
 
     // Set all hands communication
 
     for (int i = hand_chain_.size(); i--;)
-		hand_chain_[i]->cube_comm = qb_comm_;
+		hand_chain_[i]->cube_comm_ = qb_comm_;
 
     return true;
 }
@@ -483,7 +483,7 @@ bool qb_class::readMeas(){
     // Send Data hands
 	sendHandMeas(closure);
   
-    return true;
+    return status;
 }
 
 //-----------------------------------------------------
@@ -510,6 +510,8 @@ void qb_class::move() {
 
 		// Cubes
 	    if (flagCMD_type_ == EQ_PRESET){
+
+	    		
 
 		    	// Command cubes in Equilibrium Position and Preset
 		    	for (int i = cube_chain_.size(); i--;)
@@ -599,13 +601,12 @@ void qb_class::spin(){
 
 	while(ros::ok()){
 
-		// Read positions of all devices
-
-		readMeas();
-
-		// Read positions of all devices
-
-		readCurrent();
+		if (flag_curr_type_)
+			// Read positions and Currents of all devices
+			readMeasCurrent();
+		else
+			// Read positions of all devices
+			readMeas();
 
 		// Set Position of all devices
 
@@ -827,7 +828,7 @@ bool qb_class::readCurrent() {
     // Send Data of hands
 	sendCurrent(hand_current);
   
-    return true;
+    return status;
 
 }
 
@@ -892,3 +893,128 @@ void qb_class::sendCurrent(vector<int> current){
 
 	hand_curr_pub.publish(read_curr);
 }
+
+//-----------------------------------------------------
+//                                      readMeasCurrent
+//-----------------------------------------------------
+
+/*
+/ *****************************************************
+/ Get actual currents and meas of cubes or/and hands
+/ *****************************************************
+/   parameters:
+/   return:
+/       true  on success
+/       false on failure
+/
+*/
+
+bool qb_class::readMeasCurrent() {
+
+	// Define Variables
+	bool status = true;
+	int meas[2];
+	float current[2] = {0, 0};
+	float pClosure = 0;
+
+
+	vector<int> cube_current_1;
+	vector<int> cube_current_2;
+
+	vector<int> hand_current;
+	vector<float> closure;
+
+	// Get Cube Current
+
+	if (flagCMD_type_ == EQ_PRESET){
+		
+		vector<float> pos;
+		vector<float> preset;
+
+		float position = 0, pSet = 0;
+
+		for (int i = cube_chain_.size(); i--;){
+			if (!cube_chain_[i]->getPPAndCurr(&position, &pSet, current, meas_unit_)){
+				cerr << "[WARNING] Unable to retrieve currents of cube: " << cube_chain_[i]->getID() << endl;
+				
+				status = false;	
+
+				pos.push_back(NAN);
+	    		preset.push_back(NAN);
+				
+				cube_current_1.push_back(NAN);
+				cube_current_2.push_back(NAN);
+				
+			}else{
+		    	pos.push_back(position);
+		    	preset.push_back(pSet);
+
+				cube_current_1.push_back(current[0]);
+				cube_current_2.push_back(current[1]);
+			}
+		}
+
+		// Send Data of cubes
+		sendCurrent(cube_current_1, cube_current_2);
+	    sendCubeMeas(pos, preset);
+	}else{
+
+		vector<float> pos_1;
+		vector<float> pos_2;
+		vector<float> pos_L;
+
+		float position[2] = {0, 0};
+
+	    for (int i = cube_chain_.size(); i--;){
+	    	if (!cube_chain_[i]->getPosAndCurr(position, current, meas_unit_)){
+				cerr << "[WARNING] Unable to retrieve measurements of cube: " << cube_chain_[i]->getID() << endl;
+	            status = false;	
+
+	           	pos_1.push_back(NAN);
+	    		pos_2.push_back(NAN);
+	    		pos_L.push_back(NAN);
+
+	    		cube_current_1.push_back(NAN);
+	    		cube_current_2.push_back(NAN);
+	    	}
+	    	else{
+
+	    		pos_1.push_back(position[0]);
+	    		pos_2.push_back(position[1]);
+	    		pos_L.push_back(position[2]);
+
+	    		cube_current_1.push_back(current[0]);
+	    		cube_current_2.push_back(current[1]);
+	    	}
+	    }
+
+	    // Send data on topic
+		sendCurrent(cube_current_1, cube_current_2);
+	    sendCubeMeas(pos_1, pos_2, pos_L);
+
+	}
+
+	// Get Hand Current
+
+	for (int i = hand_chain_.size(); i--;){		
+		if (!hand_chain_[i]->getPosAndCurr(&pClosure, current, meas_unit_)){
+    		cerr << "[WARNING] Unable to retrieve current of hand: " << hand_chain_[i]->getID() << endl;
+
+            status = false;
+
+            hand_current.push_back(NAN);
+            closure.push_back(pClosure);	
+        }else{
+        	hand_current.push_back(current[0]);	
+        	closure.push_back(pClosure);	
+        }
+    }
+
+    // Send Data of hands
+	sendCurrent(hand_current);
+	sendHandMeas(closure);
+  
+    return status;
+
+}
+

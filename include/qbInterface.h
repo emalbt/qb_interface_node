@@ -71,16 +71,21 @@ class qbInterface
         // Getter of variable ID
         int getID();
 
+        //------------------------------ getMeasAndCurr
+        // Get measurements and current of the motors
+        bool getMeasAndCurr(short int*, short int*);
+
+
         //------------------------------ getCurrents
         // Get motor currents
         template <typename T>
         bool getCurrents(T*);
 
-        comm_settings* cube_comm;
+        comm_settings* cube_comm_;
 
     protected:
-        int ID;
-        int axis_dir;
+        int id_;
+        int axis_dir_;
 
     private:
 

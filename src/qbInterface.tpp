@@ -16,14 +16,14 @@
 template <typename T>
 bool qbInterface::getCurrents(T* curr) {
 
-    if (cube_comm == NULL) {
+    if (cube_comm_ == NULL) {
         cerr << "ERROR: Port not opened" << endl;
         return false;
     }
 
     short int currBuf[2];
 
-    if (commGetCurrents(cube_comm, ID, currBuf))
+    if (commGetCurrents(cube_comm_, id_, currBuf))
         return false;
 
     curr[0] = currBuf[0];

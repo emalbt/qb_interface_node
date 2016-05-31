@@ -1,3 +1,4 @@
+
 // Copyright (c) 2012, qbrobotics.
 // All rights reserved.
 //
@@ -38,7 +39,6 @@
 #ifndef QBMOVE_SERIALPORT_H_INCLUDED
 #define QBMOVE_SERIALPORT_H_INCLUDED
 
-
 #if (defined(_WIN32) || defined(_WIN64))
     #include <windows.h>
 #else
@@ -49,6 +49,11 @@
 #if !(defined(_WIN32) || defined(_WIN64)) && !(defined(__APPLE__)) //only for linux
     #include <termios.h>
 #endif
+
+#define BAUD_RATE_T_2000000     0
+#define BAUD_RATE_T_460800      1
+#define MAX_WATCHDOG_TIME       500
+#define READ_TIMEOUT            4000
 
 #include "commands.h"
 
@@ -124,9 +129,9 @@ int RS485listPorts( char list_of_ports[10][255] );
 **/
 
 #if !(defined(_WIN32) || defined(_WIN64)) && !(defined(__APPLE__)) //only for linux
-    void openRS485( comm_settings *comm_settings_t, const char *port_s, int BAUD_RATE = B460800);
+    void openRS485( comm_settings *comm_settings_t, const char *port_s, int BAUD_RATE = B2000000);
 #else
-    void openRS485( comm_settings *comm_settings_t, const char *port_s, int BAUD_RATE = 460800);
+    void openRS485( comm_settings *comm_settings_t, const char *port_s, int BAUD_RATE = 2000000);
 #endif
 
 
@@ -290,6 +295,65 @@ int commPing( comm_settings *comm_settings_t, int id );
 void commActivate(  comm_settings *comm_settings_t,
                     int id,
                     char activate );
+
+//============================================================     commSetBaudRate
+
+/** This function sets baudrate of communication.
+ *
+ *  \param  comm_settings_t     A _comm_settings_ structure containing info about the
+ *                              communication settings.
+ *
+ *  \param  id                  The device's id number.
+ *  \param  baudrate            BaudRate requested (0/1)
+ *
+ *  \par Example
+ *  \code
+
+    comm_settings comm_settings_t;
+    int     device_id = 65;
+    short int   baudrate = 0;
+
+    openRS485(&comm_settings_t,"/dev/tty.usbserial-FTU6OC47");
+    commBaudRate(&comm_settings_t, global_args.device_id,
+        baudrate);
+    closeRS485(&comm_settings_t);
+
+ *  \endcode
+**/
+
+void commSetBaudRate(comm_settings *comm_settings_t,
+                    int id,
+                    short int baudrate);
+
+//============================================================     commSetWatchDog
+
+/** This function sets watchdog timer of cube.
+ *
+ *  \param  comm_settings_t     A _comm_settings_ structure containing info about the
+ *                              communication settings.
+ *
+ *  \param  id                  The device's id number.
+ *  \param  wdt                 Watchdog timer in [csec],
+ *                              max value: 500 [cs] / min value: 0 (disable) [cs]
+ *
+ *  \par Example
+ *  \code
+
+    comm_settings comm_settings_t;
+    int     device_id = 65;
+    short int   wdt = 60;
+
+    openRS485(&comm_settings_t,"/dev/tty.usbserial-FTU6OC47");
+    commBaudRate(&comm_settings_t, global_args.device_id,
+        wdt);
+    closeRS485(&comm_settings_t);
+
+ *  \endcode
+**/
+
+void commSetWatchDog(comm_settings *comm_settings_t,
+                    int id,
+                    short int wdt);
 
 //============================================================     commSetInputs
 
@@ -566,6 +630,7 @@ int commSetParam(  comm_settings *comm_settings_t,
                     enum qbmove_parameter type,
                     void *values,
                     unsigned short num_of_values );
+
 
 //============================================================     commGetParam
 

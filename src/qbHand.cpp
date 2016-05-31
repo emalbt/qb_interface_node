@@ -83,12 +83,12 @@ bool qbHand::setPosPerc(float rateC) {
 
     // Motor of the hand position
 
-    curr_ref[0] = rateC * POS_LIMIT_M1[1] / 4.0 * axis_dir;
-    curr_ref[1] = rateC * POS_LIMIT_M1[1] / 4.0 * axis_dir;
+    curr_ref[0] = rateC * POS_LIMIT_M1_[1] / 4.0 * axis_dir_;
+    curr_ref[1] = rateC * POS_LIMIT_M1_[1] / 4.0 * axis_dir_;
 
     // Call cube position
 
-    commSetInputs(cube_comm, ID, curr_ref);
+    commSetInputs(cube_comm_, id_, curr_ref);
 
     return true;
 }
@@ -117,9 +117,9 @@ bool qbHand::getPosPerc(float* angle) {
     if (!getMeas(meas))
         return false;
 
-    // Trasform in rad and return measured value
+    // Trasform in perc and return measured value
 
-    *angle = (((float) meas[0]) / DEG_TICK_MULTIPLIER) * (M_PI/180.0) / (POS_LIMIT_M1[1] / 4) * axis_dir;
+    *angle = (((float) meas[0]) / DEG_TICK_MULTIPLIER) * (M_PI/180.0) / (POS_LIMIT_M1_[1] / 4) * axis_dir_;
 
     return true;
 }
@@ -144,16 +144,61 @@ void qbHand::retrieveParams() {
     // Retrive informations
 
     for (int i = 0; i < NUM_OF_TRIALS; i++) {
-        if(!commGetParam(cube_comm, ID, PARAM_POS_LIMIT, pos_limits, 4)) {
+        if(!commGetParam(cube_comm_, id_, PARAM_POS_LIMIT, pos_limits, 4)) {
             // Save limits
-            POS_LIMIT_M1[0] = pos_limits[0] / 2;
-            POS_LIMIT_M1[1] = pos_limits[1] / 2;
-            POS_LIMIT_M2[0] = pos_limits[2] / 2;
-            POS_LIMIT_M2[1] = pos_limits[3] / 2;
+            POS_LIMIT_M1_[0] = pos_limits[0] / 2;
+            POS_LIMIT_M1_[1] = pos_limits[1] / 2;
+            POS_LIMIT_M2_[0] = pos_limits[2] / 2;
+            POS_LIMIT_M2_[1] = pos_limits[3] / 2;
 
             return;
         }
     }
 
-    std::cerr << "Unable to retrieve hand params. ID: " << ID << std::endl;
+    std::cerr << "Unable to retrieve hand params. ID: " << id_ << std::endl;
+}
+
+//-----------------------------------------------------
+//                                        getPosAndCurr
+//-----------------------------------------------------
+
+/*
+/ *****************************************************
+/ Get positions and current for each motor, default 
+/ input is set to radiants
+/ *****************************************************
+/   arguments:
+/       - position, measured angle
+/       - current, motor current
+/       - unit, measurement unit for position
+/               and stiffness [rad or deg]
+/   return:
+/       true  on success
+/       false on failure
+/
+*/
+
+bool qbHand::getPosAndCurr(float* position, float* current, angular_unit unit) {
+     
+    short int meas[3], curr[2];     
+
+    // Get position measurements and currents
+    if(!getMeasAndCurr(meas, curr))
+        return false;
+
+    // Return position in the right unit
+
+    if (unit == DEG)
+        position[0] = (((float) meas[0]) / DEG_TICK_MULTIPLIER);
+    else
+        if (unit == RAD)
+            position[0] = (((float) meas[0]) / DEG_TICK_MULTIPLIER) * (M_PI / 180);
+        else
+            position[0] = (float) meas[0];
+
+    // save Currents
+    current[0] = (float) curr[0];
+    current[1] = (float) curr[1];
+
+    return true;
 }
