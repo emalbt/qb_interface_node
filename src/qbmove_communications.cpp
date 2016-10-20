@@ -24,18 +24,16 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- *  \file       qbmove_communications.c
+ *  \file       qbmove_communications.cpp
  *
  *  \brief      Library of functions for SERIAL PORT communication with a
- *              QB Move.
- *
- *              Implementation.
+ *              qbMove or a qbHand
  *
  *  \details
  *
- *  Check the \ref qbmove_communications.h "qbmove_communications.h file
- *  reference" for a complete description of the public functions implemented in
- *  qbmove_communications.c.
+ *  Check the \ref qbmove_communications.h "qbmove_communications.h" file
+ *  for a complete description of the public functions implemented in
+ *  qbmove_communications.cpp.
 **/
 
 //=================================================================     includes
@@ -416,9 +414,6 @@ void closeRS485(comm_settings *comm_settings_t)
 //                                                                   timevaldiff
 //==============================================================================
 
-/*
- * Return the difference between two timeval structures in microseconds
- */
 long timevaldiff(struct timeval *starttime, struct timeval *finishtime)
 {
     long usec;
@@ -436,6 +431,7 @@ long timevaldiff(struct timeval *starttime, struct timeval *finishtime)
 
 int RS485read(comm_settings *comm_settings_t, int id, char *package)
 {
+    //printf("rs485\n");
     unsigned char data_in[BUFFER_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};     // output data buffer
     unsigned int package_size = 6;
 
@@ -473,14 +469,16 @@ int RS485read(comm_settings *comm_settings_t, int id, char *package)
         ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
     }
 
-    if (!read(comm_settings_t->file_handle, data_in, 4)) 
+    if (!read(comm_settings_t->file_handle, data_in, 4)) {
+
         return -1;
-    
+    }
 
     // Control ID
-    if ((id != 0) && (data_in[2] != id))
+    if ((id != 0) && (data_in[2] != id)) {
         return -2;
-    
+    }
+
 
     package_size = data_in[3];
 
@@ -494,15 +492,16 @@ int RS485read(comm_settings *comm_settings_t, int id, char *package)
         ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
     }
 
-    if (!read(comm_settings_t->file_handle, data_in, package_size)) 
+    if (!read(comm_settings_t->file_handle, data_in, package_size)) {
         return -3;
-    
+    }
+
 #endif
 
     // Control checksum
-    if (checksum ( (char *) data_in, package_size - 1) != (char) data_in[package_size - 1]) 
+    if (checksum ( (char *) data_in, package_size - 1) != (char) data_in[package_size - 1]) {
        return -1;
-    
+    }
 
 #ifdef VERBOSE
     printf("Received package size: %d \n", package_size);
@@ -720,8 +719,8 @@ int commPing(comm_settings *comm_settings_t, int id)
 #endif
 
     package_in_size = RS485read(comm_settings_t, id, package_in);
-    if ((package_in_size == -1) || (package_in[1] != CMD_PING))
-        return -1;
+    if ((package_in_size < 0) || (package_in[1] != CMD_PING))
+        return package_in_size;
 
     return 0;
 }
@@ -883,8 +882,8 @@ int commGetActivate(comm_settings *comm_settings_t, int id, char *activate){
 
 
     package_in_size = RS485read(comm_settings_t, id, package_in);
-    if (package_in_size == -1)
-        return -1;
+    if (package_in_size < 0)
+        return package_in_size;
 
 //==============================================================	 get packet
 
@@ -1019,8 +1018,8 @@ int commGetInputs(comm_settings *comm_settings_t, int id, short int inputs[2]) {
 
 
     package_in_size = RS485read(comm_settings_t, id, package_in);
-    if (package_in_size == -1)
-        return -1;
+    if (package_in_size < 0)
+        return package_in_size;
 
 //==============================================================	 get packet
 
@@ -1071,24 +1070,136 @@ int commGetMeasurements(comm_settings *comm_settings_t, int id, short int measur
 #endif
 
     package_in_size = RS485read(comm_settings_t, id, package_in);
-    if (package_in_size == -1)
-        return -1;
+    if (package_in_size < 0)
+        return package_in_size;
 
 //==============================================================	 get packet
 
-    ((char *) &measurements[0])[0] = package_in[2];
-    ((char *) &measurements[0])[1] = package_in[1];
+    switch ((package_in_size - 2) >> 1) {
+        case 1:
+            ((char *) &measurements[0])[0] = package_in[2];
+            ((char *) &measurements[0])[1] = package_in[1];
+        break;
+        case 2:
+            ((char *) &measurements[0])[0] = package_in[2];
+            ((char *) &measurements[0])[1] = package_in[1];
+            ((char *) &measurements[1])[0] = package_in[4];
+            ((char *) &measurements[1])[1] = package_in[3];
+        break;
+        case 3:
+            ((char *) &measurements[0])[0] = package_in[2];
+            ((char *) &measurements[0])[1] = package_in[1];
+            ((char *) &measurements[1])[0] = package_in[4];
+            ((char *) &measurements[1])[1] = package_in[3];
+            ((char *) &measurements[2])[0] = package_in[6];
+            ((char *) &measurements[2])[1] = package_in[5];
+        break;
+        case 4:
+            ((char *) &measurements[0])[0] = package_in[2];
+            ((char *) &measurements[0])[1] = package_in[1];
+            ((char *) &measurements[1])[0] = package_in[4];
+            ((char *) &measurements[1])[1] = package_in[3];
+            ((char *) &measurements[2])[0] = package_in[6];
+            ((char *) &measurements[2])[1] = package_in[5];
+            ((char *) &measurements[3])[0] = package_in[8];
+            ((char *) &measurements[3])[1] = package_in[7];
+        break;
+        default:
+            printf("Number of sensors not supported.\n");
+            return -1; 
+        break;
+    }
 
-    ((char *) &measurements[1])[0] = package_in[4];
-    ((char *) &measurements[1])[1] = package_in[3];
+    return ((package_in_size - 2) >> 1);
+}
 
-    ((char *) &measurements[2])[0] = package_in[6];
-    ((char *) &measurements[2])[1] = package_in[5];
+//==============================================================================
+//                                                               commGetCounters
+//==============================================================================
+// This function gets counters values from the QB Move.
+//==============================================================================
 
-#if NUM_OF_SENSORS == 4
-    ((char *) &measurements[3])[0] = package_in[8];
-    ((char *) &measurements[3])[1] = package_in[7];
+int commGetCounters(comm_settings *comm_settings_t, int id, short unsigned int counters[]) {
+
+    char data_out[BUFFER_SIZE];         // output data buffer
+    char package_in[BUFFER_SIZE];       // output data buffer
+    int package_in_size;
+
+#if (defined(_WIN32) || defined(_WIN64))
+    DWORD package_size_out;             // for serial port access
+#else
+    int n_bytes;
 #endif
+
+//=================================================     preparing packet to send
+
+    data_out[0] = ':';
+    data_out[1] = ':';
+    data_out[2] = (unsigned char) id;
+    data_out[3] = 2;
+    data_out[4] = CMD_GET_COUNTERS;             // command
+    data_out[5] = CMD_GET_COUNTERS;             // checksum
+
+#if (defined(_WIN32) || defined(_WIN64))
+    WriteFile(comm_settings_t->file_handle, data_out, 6, &package_size_out, NULL);
+#else
+    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
+    if(n_bytes)
+        read(comm_settings_t->file_handle, package_in, n_bytes);
+
+    write(comm_settings_t->file_handle, data_out, 6);
+#endif
+
+    package_in_size = RS485read(comm_settings_t, id, package_in);
+    if (package_in_size < 0) 
+        return package_in_size;
+    
+//==============================================================     get packet
+
+    ((char *) &counters[0])[0] = package_in[2];
+    ((char *) &counters[0])[1] = package_in[1];
+    ((char *) &counters[1])[0] = package_in[4];
+    ((char *) &counters[1])[1] = package_in[3];
+    ((char *) &counters[2])[0] = package_in[6];
+    ((char *) &counters[2])[1] = package_in[5];
+    ((char *) &counters[3])[0] = package_in[8];
+    ((char *) &counters[3])[1] = package_in[7];
+
+    ((char *) &counters[4])[0] = package_in[10];
+    ((char *) &counters[4])[1] = package_in[9];
+    ((char *) &counters[5])[0] = package_in[12];
+    ((char *) &counters[5])[1] = package_in[11];
+    ((char *) &counters[6])[0] = package_in[14];
+    ((char *) &counters[6])[1] = package_in[13];
+    ((char *) &counters[7])[0] = package_in[16];
+    ((char *) &counters[7])[1] = package_in[15];
+
+    ((char *) &counters[8])[0] = package_in[18];
+    ((char *) &counters[8])[1] = package_in[17];
+    ((char *) &counters[9])[0] = package_in[20];
+    ((char *) &counters[9])[1] = package_in[19];
+    ((char *) &counters[10])[0] = package_in[22];
+    ((char *) &counters[10])[1] = package_in[21];
+    ((char *) &counters[11])[0] = package_in[24];
+    ((char *) &counters[11])[1] = package_in[23];
+
+    ((char *) &counters[12])[0] = package_in[26];
+    ((char *) &counters[12])[1] = package_in[25];
+    ((char *) &counters[13])[0] = package_in[28];
+    ((char *) &counters[13])[1] = package_in[27];
+    ((char *) &counters[14])[0] = package_in[30];
+    ((char *) &counters[14])[1] = package_in[29];
+    ((char *) &counters[15])[0] = package_in[32];
+    ((char *) &counters[15])[1] = package_in[31];
+
+    ((char *) &counters[16])[0] = package_in[34];
+    ((char *) &counters[16])[1] = package_in[33];
+    ((char *) &counters[17])[0] = package_in[36];
+    ((char *) &counters[17])[1] = package_in[35];
+    ((char *) &counters[18])[0] = package_in[38];
+    ((char *) &counters[18])[1] = package_in[37];
+    ((char *) &counters[19])[0] = package_in[40];
+    ((char *) &counters[19])[1] = package_in[39];
 
     return 0;
 }
@@ -1132,8 +1243,8 @@ int commGetCurrents(comm_settings *comm_settings_t, int id, short int currents[2
 
 
     package_in_size = RS485read(comm_settings_t, id, package_in);
-    if (package_in_size == -1)
-        return -1;
+    if (package_in_size < 0)
+        return package_in_size;
 //==============================================================	 get packet
 
     ((char *) &currents[0])[0] = package_in[2];
@@ -1185,8 +1296,8 @@ int commGetEmg(comm_settings *comm_settings_t, int id, short int emg[2]) {
 
 
     package_in_size = RS485read(comm_settings_t, id, package_in);
-    if (package_in_size == -1)
-        return -1;
+    if (package_in_size < 0)
+        return package_in_size;
 
 //===============================================================     get packet
 
@@ -1240,8 +1351,8 @@ int commGetCurrAndMeas( comm_settings *comm_settings_t,
 #endif
 
     package_in_size = RS485read(comm_settings_t, id, package_in);
-    if (package_in_size == -1)
-        return -1;
+    if (package_in_size < 0)
+        return package_in_size;
 
 //===============================================================     get packet
 
@@ -1303,26 +1414,130 @@ int commGetVelocities(comm_settings *comm_settings_t, int id, short int measurem
 #endif
 
     package_in_size = RS485read(comm_settings_t, id, package_in);
-    if (package_in_size == -1)
-        return -1;
+    if (package_in_size < 0)
+        return package_in_size;
 
 //==============================================================     get packet
 
-    ((char *) &measurements[0])[0] = package_in[2];
-    ((char *) &measurements[0])[1] = package_in[1];
+    switch ((package_in_size - 2) >> 1) {
+        case 1:
+            ((char *) &measurements[0])[0] = package_in[2];
+            ((char *) &measurements[0])[1] = package_in[1];
+        break;
+        case 2:
+            ((char *) &measurements[0])[0] = package_in[2];
+            ((char *) &measurements[0])[1] = package_in[1];
+            ((char *) &measurements[1])[0] = package_in[4];
+            ((char *) &measurements[1])[1] = package_in[3];
+        break;
+        case 3:
+            ((char *) &measurements[0])[0] = package_in[2];
+            ((char *) &measurements[0])[1] = package_in[1];
+            ((char *) &measurements[1])[0] = package_in[4];
+            ((char *) &measurements[1])[1] = package_in[3];
+            ((char *) &measurements[2])[0] = package_in[6];
+            ((char *) &measurements[2])[1] = package_in[5];
+        break;
+        case 4:
+            ((char *) &measurements[0])[0] = package_in[2];
+            ((char *) &measurements[0])[1] = package_in[1];
+            ((char *) &measurements[1])[0] = package_in[4];
+            ((char *) &measurements[1])[1] = package_in[3];
+            ((char *) &measurements[2])[0] = package_in[6];
+            ((char *) &measurements[2])[1] = package_in[5];
+            ((char *) &measurements[3])[0] = package_in[8];
+            ((char *) &measurements[3])[1] = package_in[7];
+        break;
+        default:
+            printf("Number of sensors not supported.\n");
+            return -1; 
+        break;
+    }
 
-    ((char *) &measurements[1])[0] = package_in[4];
-    ((char *) &measurements[1])[1] = package_in[3];
+    return ((package_in_size - 2) >> 1);
 
-    ((char *) &measurements[2])[0] = package_in[6];
-    ((char *) &measurements[2])[1] = package_in[5];
+}
 
-#if NUM_OF_SENSORS == 4
-    ((char *) &measurements[3])[0] = package_in[8];
-    ((char *) &measurements[3])[1] = package_in[7];
+//==============================================================================
+//                                                          commGetAccelerations
+//==============================================================================
+// This function gets measurements from the QB Move.
+//==============================================================================
+
+int commGetAccelerations(comm_settings *comm_settings_t, int id, short int measurements[]) {
+
+    char data_out[BUFFER_SIZE];         // output data buffer
+    char package_in[BUFFER_SIZE];       // output data buffer
+    int package_in_size;
+
+#if (defined(_WIN32) || defined(_WIN64))
+    DWORD package_size_out;             // for serial port access
+#else
+    int n_bytes;
 #endif
 
-    return 0;
+//=================================================     preparing packet to send
+
+    data_out[0] = ':';
+    data_out[1] = ':';
+    data_out[2] = (unsigned char) id;
+    data_out[3] = 2;
+    data_out[4] = CMD_GET_ACCEL;             // command
+    data_out[5] = CMD_GET_ACCEL;             // checksum
+
+#if (defined(_WIN32) || defined(_WIN64))
+    WriteFile(comm_settings_t->file_handle, data_out, 6, &package_size_out, NULL);
+#else
+    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
+    if(n_bytes)
+        read(comm_settings_t->file_handle, package_in, n_bytes);
+
+    write(comm_settings_t->file_handle, data_out, 6);
+#endif
+
+    package_in_size = RS485read(comm_settings_t, id, package_in);
+    if (package_in_size < 0)
+        return package_in_size;
+
+//==============================================================     get packet
+
+    switch ((package_in_size - 2) >> 1) {
+        case 1:
+            ((char *) &measurements[0])[0] = package_in[2];
+            ((char *) &measurements[0])[1] = package_in[1];
+        break;
+        case 2:
+            ((char *) &measurements[0])[0] = package_in[2];
+            ((char *) &measurements[0])[1] = package_in[1];
+            ((char *) &measurements[1])[0] = package_in[4];
+            ((char *) &measurements[1])[1] = package_in[3];
+        break;
+        case 3:
+            ((char *) &measurements[0])[0] = package_in[2];
+            ((char *) &measurements[0])[1] = package_in[1];
+            ((char *) &measurements[1])[0] = package_in[4];
+            ((char *) &measurements[1])[1] = package_in[3];
+            ((char *) &measurements[2])[0] = package_in[6];
+            ((char *) &measurements[2])[1] = package_in[5];
+        break;
+        case 4:
+            ((char *) &measurements[0])[0] = package_in[2];
+            ((char *) &measurements[0])[1] = package_in[1];
+            ((char *) &measurements[1])[0] = package_in[4];
+            ((char *) &measurements[1])[1] = package_in[3];
+            ((char *) &measurements[2])[0] = package_in[6];
+            ((char *) &measurements[2])[1] = package_in[5];
+            ((char *) &measurements[3])[0] = package_in[8];
+            ((char *) &measurements[3])[1] = package_in[7];
+        break;
+        default:
+            printf("Number of sensors not supported.\n");
+            return -1; 
+        break;
+    }
+
+    return ((package_in_size - 2) >> 1);
+
 }
 
 //==============================================================================
@@ -1354,7 +1569,7 @@ int commGetInfo(comm_settings *comm_settings_t, int id, short int info_type, cha
     data_out[0] = ':';
     data_out[1] = ':';
     data_out[2] = (unsigned char) id;
-    data_out[3] = 5;
+    data_out[3] = 4;
     data_out[4] = CMD_GET_INFO;                        // command
     data_out[5] = ((unsigned char *) &info_type)[1];   // parameter type
     data_out[6] = ((unsigned char *) &info_type)[0];   // parameter type
@@ -1446,8 +1661,8 @@ int commBootloader(comm_settings *comm_settings_t, int id) {
 #endif
 
     package_in_size = RS485read(comm_settings_t, id, package_in);
-    if (package_in_size == -1)
-        return -1;
+    if (package_in_size < 0)
+        return package_in_size;
 
     return 0;
 }
@@ -1490,8 +1705,8 @@ int commCalibrate(comm_settings *comm_settings_t, int id) {
 #endif
 
     package_in_size = RS485read(comm_settings_t, id, package_in);
-    if (package_in_size == -1)
-        return -1;
+    if (package_in_size < 0)
+        return package_in_size;
 
     return 0;
 }
@@ -1537,29 +1752,28 @@ int commHandCalibrate(comm_settings *comm_settings_t, int id, short int speed, s
 #endif
 
     package_in_size = RS485read(comm_settings_t, id, package_in);
-    if (package_in_size == -1)
-        return -1;
+    if (package_in_size < 0)
+        return package_in_size;
 
     return 0;
 }
 
 //==============================================================================
-//                                                                  commSetParam
+//                                                                  commSetZeros
 //==============================================================================
-// This function send a parameter to the QB Move.
+// This function sets the zero position of the device connected
 //==============================================================================
 
-int commSetParam(  comm_settings *comm_settings_t,
+int commSetZeros(   comm_settings *comm_settings_t,
                     int id,
-                    enum qbmove_parameter type,
                     void *values,
                     unsigned short num_of_values ) {
 
     char data_out[BUFFER_SIZE];     // output data buffer
     char package_in[BUFFER_SIZE];
     int package_in_size;
-    void *value;
     unsigned short int value_size, i, h;
+    void* value;
 
 #if (defined(_WIN32) || defined(_WIN64))
     DWORD package_size_out;         // for serial port access
@@ -1567,147 +1781,41 @@ int commSetParam(  comm_settings *comm_settings_t,
     int n_bytes;
 #endif
 
-    switch (type){
-        case PARAM_ID:
-            value       = (unsigned char *) values;
-            value_size  = 1;
-            break;
-
-        case PARAM_PID_CONTROL:
-            value       = (float *) values;
-            value_size  = 4;
-            break;
-
-        case PARAM_PID_CURR_CONTROL:
-            value       = (float *) values;
-            value_size  = 4;
-            break;
-
-        case PARAM_STARTUP_ACTIVATION:
-            value       = (unsigned char *) values;
-            value_size  = 1;
-            break;
-
-        case PARAM_INPUT_MODE:
-            value       = (unsigned char *) values;
-            value_size  = 1;
-            break;
-
-        case PARAM_CONTROL_MODE:
-            value       = (unsigned char *) values;
-            value_size  = 1;
-            break;
-
-        case PARAM_POS_RESOLUTION:
-            value       = (unsigned char *) values;
-            value_size  = 1;
-            break;
-
-        case PARAM_MEASUREMENT_OFFSET:
-            value       = (unsigned int *) values;
-            value_size  = 2;
-            break;
-
-        case PARAM_MEASUREMENT_MULTIPLIER:
-            value       = (float *) values;
-            value_size  = 4;
-            break;
-
-        case PARAM_POS_LIMIT_FLAG:
-            value       = (unsigned char *) values;
-            value_size  = 1;
-            break;
-
-        case PARAM_POS_LIMIT:
-            value       = (short int *) values;
-            value_size  = 2;
-            break;
-
-        case PARAM_MAX_STEP_POS:
-            value       = (int32_t *) values;
-            value_size  = 4;
-            break;
-
-        case PARAM_MAX_STEP_NEG:
-            value       = (int32_t *) values;
-            value_size  = 4;
-            break;
-
-        case PARAM_CURRENT_LIMIT:
-            value       = (int16_t *) values;
-            value_size  = 2;
-            break;
-
-        case PARAM_EMG_CALIB_FLAG:
-            value       = (int8_t *) values;
-            value_size  = 1;
-            break;
-
-        case PARAM_EMG_THRESHOLD:
-            value       = (int16_t *) values;
-            value_size  = 2;
-            break;
-
-
-        case PARAM_EMG_MAX_VALUE:
-            value       = (int32_t *) values;
-            value_size  = 4;
-            break;
-
-        case PARAM_EMG_SPEED:
-            value       = (uint8_t *) values;
-            value_size  = 1;
-            break;
-
-        case PARAM_DOUBLE_ENC_ON_OFF:
-            value       = (uint8_t *) values;
-            value_size  = 1;
-            break;
-
-        case PARAM_MOT_HANDLE_RATIO:
-            value       = (int8_t *) values;
-            value_size  = 1;
-            break;
-
-        default:
-            return -1;
-    }
-
+    value       = (unsigned int *) values;
+    value_size  = 2;    //bytes of a short integer value
 
     data_out[0] = ':';
     data_out[1] = ':';
     data_out[2] = (unsigned char) id;
-    data_out[3] = 4 + num_of_values * value_size;
+    data_out[3] = 2 + num_of_values * value_size;
 
-    data_out[4] = CMD_SET_PARAM;                // command
-    data_out[5] = ((char *) &type)[1];          // parameter type
-    data_out[6] = ((char *) &type)[0];          // parameter type
+    data_out[4] = CMD_SET_ZEROS;                // command
 
     for(h = 0; h < num_of_values; ++h) {
         for(i = 0; i < value_size; ++i) {
-            data_out[ h * value_size +  7 + i ] =
+            data_out[ h * value_size +  5 + i ] =
                 ((char *) value)[ h * value_size + value_size - i - 1 ];
         }
     }
 
-    data_out[ 7 + num_of_values * value_size ] =
-            checksum( data_out + 4, 3 + num_of_values * value_size );
+    data_out[ 5 + num_of_values * value_size ] =
+            checksum( data_out + 4, 1 + num_of_values * value_size );
 
 
 #if (defined(_WIN32) || defined(_WIN64))
-    WriteFile(comm_settings_t->file_handle, data_out, 8 + num_of_values * value_size, &package_size_out, NULL);
+    WriteFile(comm_settings_t->file_handle, data_out, 6 + num_of_values * value_size, &package_size_out, NULL);
 #else
     ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
     if(n_bytes)
         read(comm_settings_t->file_handle, package_in, n_bytes);
 
-    write(comm_settings_t->file_handle, data_out, 8 + num_of_values * value_size);
+    write(comm_settings_t->file_handle, data_out, 6 + num_of_values * value_size);
 #endif
 
     package_in_size = RS485read(comm_settings_t, id, package_in);
 
-    if ( (package_in_size == -1) || (package_in[0] == ACK_ERROR) ) {
-        return -1;
+    if ( (package_in_size < 0) || (package_in[0] == ACK_ERROR) ) {
+        return package_in_size;
     }
 
     if (package_in[0] == ACK_OK) {
@@ -1718,148 +1826,118 @@ int commSetParam(  comm_settings *comm_settings_t,
 }
 
 //==============================================================================
-//                                                                 commGetParams
+//                                                              commGetParamList
+//==============================================================================
+// This function gets the list of parameters of the device or sets one of them
 //==============================================================================
 
-int commGetParam(comm_settings *comm_settings_t,
-                    int id,
-                    enum qbmove_parameter type,
-                    void *values,
-                    unsigned short num_of_values ) {
+int commGetParamList(comm_settings *comm_settings_t, int id, unsigned short index,
+                    void *values, unsigned short value_size, unsigned short num_of_values,
+                    uint8_t *param_buffer) {
 
-    int package_in_size;
     char data_out[BUFFER_SIZE];         // output data buffer
     char package_in[BUFFER_SIZE];
-    unsigned short int value_size;
+    int package_in_size;
 
 #if (defined(_WIN32) || defined(_WIN64))
     DWORD package_size_out;             // for serial port access
+    DWORD n_bytes_in = 0;
+    unsigned char aux;
+    int i = 0;
 #else
-    int n_bytes;
+    int bytes;
+    int count = 0;
+    const int size = 512;
+    int8_t aux_buffer[size];
 #endif
-
-    switch (type){
-        case PARAM_ID:
-            value_size = 1;
-            break;
-
-        case PARAM_PID_CONTROL:
-            value_size = 4;
-            break;
-
-        case PARAM_PID_CURR_CONTROL:
-            value_size = 4;
-            break;
-
-        case PARAM_STARTUP_ACTIVATION:
-            value_size = 1;
-            break;
-
-        case PARAM_INPUT_MODE:
-            value_size = 1;
-            break;
-
-        case PARAM_CONTROL_MODE:
-            value_size = 1;
-            break;
-
-        case PARAM_POS_RESOLUTION:
-            value_size = 1;
-            break;
-
-        case PARAM_MEASUREMENT_OFFSET:
-            value_size = 2;
-            break;
-
-        case PARAM_MEASUREMENT_MULTIPLIER:
-            value_size = 4;
-            break;
-
-        case PARAM_POS_LIMIT_FLAG:
-            value_size = 1;
-            break;
-
-        case PARAM_POS_LIMIT:
-            value_size = 4;
-            break;
-
-        case PARAM_MAX_STEP_POS:
-            value_size = 4;
-            break;
-
-        case PARAM_MAX_STEP_NEG:
-            value_size = 4;
-            break;
-
-        case PARAM_CURRENT_LIMIT:
-            value_size = 2;
-            break;
-
-        case PARAM_EMG_CALIB_FLAG:
-            value_size = 1;
-            break;
-
-        case PARAM_EMG_THRESHOLD:
-            value_size = 2;
-            break;
-
-        case PARAM_EMG_MAX_VALUE:
-            value_size = 4;
-            break;
-
-        case PARAM_EMG_SPEED:
-            value_size = 1;
-            break;
-
-        case PARAM_DOUBLE_ENC_ON_OFF:
-            value_size = 1;
-            break;
-
-        case PARAM_MOT_HANDLE_RATIO:
-            value_size = 1;
-            break;
-
-        default:
-            break;
-    }
 
 //================================================      preparing packet to send
 
     data_out[0] = ':';
     data_out[1] = ':';
     data_out[2] = (unsigned char) id;
-    data_out[3] = 4;
-    data_out[4] = CMD_GET_PARAM;                // command
-    data_out[5] = ((char *) &type)[1];          // parameter type
-    data_out[6] = ((char *) &type)[0];          // parameter type
+    data_out[3] = 4 + num_of_values * value_size;
 
-    data_out[7] = checksum (data_out + 4, 3);   // checksum
+    data_out[4] = CMD_GET_PARAM_LIST;                // command
+    data_out[5] = ((char *) &index)[1];          // parameter type
+    data_out[6] = ((char *) &index)[0];          // parameter type
 
-#if (defined(_WIN32) || defined(_WIN64))
-    WriteFile(comm_settings_t->file_handle, data_out, 8, &package_size_out, NULL);
-#else
-    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
-    if(n_bytes)
-        read(comm_settings_t->file_handle, package_in, n_bytes);
+    for(int h = 0; h < num_of_values; ++h) {
+        for(int i = 0; i < value_size; ++i) {
+            data_out[ h * value_size +  7 + i ] =
+                ((char *) values)[ h * value_size + value_size - i - 1 ];
+        }
+    }
 
-    write(comm_settings_t->file_handle, data_out, 8);
-#endif
-
-    package_in_size = RS485read(comm_settings_t, id, package_in);
-
-    if (package_in_size == -1)
-        return -1;
+    data_out[ 7 + num_of_values * value_size ] =
+            checksum( data_out + 4, 3 + num_of_values * value_size );
 
 //==============================================================  get packet
 
-    unsigned short int i, h;
+    if(!index) {        //The package must be read only when asking for all parameters information
+        #if (defined(_WIN32) || defined(_WIN64))
+            WriteFile(comm_settings_t->file_handle, data_out, 8, &package_size_out, NULL);
 
-    for(h = 0; h < num_of_values; ++h) {
-        for(i = 0; i < value_size; ++i) {
-            ((char *) values)
-                [ h * value_size + value_size - i - 1 ] =
-                package_in[ h * value_size + i + 1 ];
-        }
+            n_bytes_in = 1;
+
+            Sleep(200);
+
+            while(n_bytes_in) {
+                ReadFile(comm_settings_t->file_handle, &aux, 1, &n_bytes_in, NULL);
+                if(n_bytes_in)
+                    param_buffer[i] = aux;
+                i++;
+            }
+
+        #else
+
+            write(comm_settings_t->file_handle, data_out, 8);
+
+            usleep(200000);
+            while(1) {
+                usleep(50000);
+                if(ioctl(comm_settings_t->file_handle, FIONREAD, &bytes) < 0) {
+                    break;
+                }
+                if(bytes == 0) {
+                    break;
+                }
+                if(bytes > size)
+                    bytes = size;
+
+                read(comm_settings_t->file_handle, aux_buffer, bytes);
+
+                memcpy(param_buffer + count, aux_buffer, bytes);
+
+                count += bytes;
+            }
+
+        #endif
+    }
+
+    else {      //Param setting 
+
+        #if (defined(_WIN32) || defined(_WIN64))
+            WriteFile(comm_settings_t->file_handle, data_out, 8 + num_of_values * value_size, &package_size_out, NULL);
+        #else
+            ioctl(comm_settings_t->file_handle, FIONREAD, &bytes);
+            if(bytes)
+                read(comm_settings_t->file_handle, package_in, bytes);
+
+            write(comm_settings_t->file_handle, data_out, 8 + num_of_values * value_size);
+        #endif
+
+            package_in_size = RS485read(comm_settings_t, id, package_in);
+
+            if ( (package_in_size < 0) || (package_in[0] == ACK_ERROR) ) {
+                return package_in_size;
+            }
+
+            if (package_in[0] == ACK_OK) {
+                return 0;
+            } else {
+                return -1;
+            }
     }
 
     return 0;
@@ -1901,8 +1979,8 @@ int commStoreParams( comm_settings *comm_settings_t, int id ) {
     usleep(100000);
     package_in_size = RS485read(comm_settings_t, id, package_in);
 
-    if ( (package_in_size == -1) || (package_in[0] == ACK_ERROR) ) {
-        return -1;
+    if ( (package_in_size < 0) || (package_in[0] == ACK_ERROR) ) {
+        return package_in_size;
     }
 
     if (package_in[0] == ACK_OK) {
@@ -1948,8 +2026,8 @@ int commStoreDefaultParams( comm_settings *comm_settings_t, int id ) {
     usleep(200000);
     package_in_size = RS485read(comm_settings_t, id, package_in);
 
-    if (package_in_size == -1) {
-        return -1;
+    if (package_in_size < 0) {
+        return package_in_size;
     } else {
         return 0;
     }
@@ -1992,8 +2070,8 @@ int commRestoreParams( comm_settings *comm_settings_t, int id ) {
     usleep(100000);
     package_in_size = RS485read(comm_settings_t, id, package_in);
 
-    if (package_in_size == -1) {
-        return -1;
+    if (package_in_size < 0) {
+        return package_in_size;
     } else {
         return 0;
     }
@@ -2036,11 +2114,149 @@ int commInitMem(comm_settings *comm_settings_t, int id) {
     usleep(300000);
     package_in_size = RS485read(comm_settings_t, id, package_in);
 
-    if (package_in_size == -1) {
-        return -1;
+    if (package_in_size < 0) {
+        return package_in_size;
     } else {
         return 0;
     }
+}
+
+//==============================================================================
+//                                                               commExtDrive
+//==============================================================================
+// This function sends external reference inputs to a second board
+//==============================================================================
+
+int commExtDrive(comm_settings *comm_settings_t, int id, char ext_input) {
+
+    char data_out[BUFFER_SIZE];         // output data buffer
+    char package_in[BUFFER_SIZE];
+    int package_in_size;
+
+#if (defined(_WIN32) || defined(_WIN64))
+    DWORD package_size_out;             // for serial port access
+#else
+    int n_bytes;
+#endif
+
+
+    data_out[0] = ':';
+    data_out[1] = ':';
+    data_out[2] = (unsigned char) id;
+    data_out[3] = 3;
+    data_out[4] = CMD_EXT_DRIVE;                            // command
+    data_out[5] = ext_input ? 3 : 0;
+    data_out[6] = checksum(data_out + 4, 2);                // checksum
+
+#if (defined(_WIN32) || defined(_WIN64))
+    WriteFile(comm_settings_t->file_handle, data_out, 7, &package_size_out, NULL);
+#else
+    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
+
+    if(n_bytes){
+        read(comm_settings_t->file_handle, package_in, n_bytes);
+    }
+    
+    write(comm_settings_t->file_handle, data_out, 7);
+#endif
+
+    package_in_size = RS485read(comm_settings_t, id, package_in);
+    if (package_in_size < 0)
+        return package_in_size;
+
+    return 0;
+
+}
+
+//==============================================================================
+//                                                            commSetCuffInputs
+//==============================================================================
+// This function send reference inputs to a qbMove board connected to a Cuff
+//==============================================================================
+
+void commSetCuffInputs(comm_settings *comm_settings_t, int id, int flag) {
+
+    char data_out[BUFFER_SIZE];         // output data buffer
+
+#if (defined(_WIN32) || defined(_WIN64))
+    DWORD package_size_out;             // for serial port access
+#else
+    char package_in[BUFFER_SIZE];
+    int n_bytes;
+#endif
+
+
+    data_out[0] = ':';
+    data_out[1] = ':';
+    data_out[2] = (unsigned char) id;
+    data_out[3] = 3;
+
+    data_out[4] = CMD_SET_CUFF_INPUTS;      // command
+    data_out[5] = flag ? 1 : 0;
+    data_out[6] = checksum(data_out + 4, 2);      // checksum
+
+#if (defined(_WIN32) || defined(_WIN64))
+    WriteFile(comm_settings_t->file_handle, data_out, 7, &package_size_out, NULL);
+#else
+    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
+    if(n_bytes)
+        read(comm_settings_t->file_handle, package_in, n_bytes);
+
+    write(comm_settings_t->file_handle, data_out, 7);
+#endif
+
+}
+
+//==============================================================================
+//                                                               commGetJoystick
+//==============================================================================
+// This function gets measurements from the jpystick connected to the board.
+//==============================================================================
+
+int commGetJoystick(comm_settings *comm_settings_t, int id, short int joystick[]) {
+    
+    char data_out[BUFFER_SIZE];         // output data buffer
+    char package_in[BUFFER_SIZE];       // output data buffer
+    int package_in_size;
+    
+#if (defined(_WIN32) || defined(_WIN64))
+    DWORD package_size_out;             // for serial port access
+#else
+    int n_bytes;
+#endif
+    
+    //=================================================     preparing packet to send
+    
+    data_out[0] = ':';
+    data_out[1] = ':';
+    data_out[2] = (unsigned char) id;
+    data_out[3] = 2;
+    data_out[4] = CMD_GET_JOYSTICK;             // command
+    data_out[5] = CMD_GET_JOYSTICK;             // checksum
+    
+#if (defined(_WIN32) || defined(_WIN64))
+    WriteFile(comm_settings_t->file_handle, data_out, 6, &package_size_out, NULL);
+#else
+    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
+    if(n_bytes)
+        read(comm_settings_t->file_handle, package_in, n_bytes);
+    
+    write(comm_settings_t->file_handle, data_out, 6);
+#endif
+    
+    package_in_size = RS485read(comm_settings_t, id, package_in);
+    if (package_in_size < 0)
+        return package_in_size;
+    
+    //==============================================================     get packet
+    
+    ((char *) &joystick[0])[0] = package_in[2];
+    ((char *) &joystick[0])[1] = package_in[1];
+    
+    ((char *) &joystick[1])[0] = package_in[4];
+    ((char *) &joystick[1])[1] = package_in[3];
+    
+    return 0;
 }
 
 //========================================     private functions implementations

@@ -140,11 +140,12 @@ bool qbHand::getPosPerc(float* angle) {
 void qbHand::retrieveParams() {
 
     int pos_limits[4];
+    int PARAM_POS_LIMIT = 11; // Position limits index
 
     // Retrive informations
 
     for (int i = 0; i < NUM_OF_TRIALS; i++) {
-        if(!commGetParam(cube_comm_, id_, PARAM_POS_LIMIT, pos_limits, 4)) {
+        if(!commGetParamList(cube_comm_, id_, PARAM_POS_LIMIT, pos_limits, 4, 2, NULL)) {
             // Save limits
             POS_LIMIT_M1_[0] = pos_limits[0] / 2;
             POS_LIMIT_M1_[1] = pos_limits[1] / 2;

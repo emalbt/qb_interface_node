@@ -263,7 +263,7 @@ bool qbInterface::getMeas(short int* meas) {
         return false;
     }
 
-    if (commGetMeasurements(cube_comm_, id_, meas))
+    if (commGetMeasurements(cube_comm_, id_, meas) < 0)
         return false;
 
     // Axis direction
@@ -355,7 +355,7 @@ bool qbInterface::getMeasAndCurr(short int* meas, short int* curr) {
         return false;
     }
 
-    if (commGetCurrAndMeas(cube_comm_, id_, aux))
+    if (commGetCurrAndMeas(cube_comm_, id_, aux) < 0)
         return false;
 
     // Current

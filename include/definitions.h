@@ -1,8 +1,7 @@
 #include <math.h>
 
-#define QBMOVEADMIN_VERSION "v5.0.1"
+#define QBMOVEADMIN_VERSION "v6.1.0"
 
-#define NUM_OF_SENSORS 3
 #define NUM_OF_MOTORS 2
 #define PI 3.14159265359
 
