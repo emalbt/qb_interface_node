@@ -51,6 +51,7 @@ add_message_files(
   handPos.msg
   cubeCurrent.msg
   handCurrent.msg
+  inertialSensor.msg
 )
 
 ## Generate services in the 'srv' folder

@@ -118,25 +118,25 @@ void qbImuBoard::getImuReadings() {
 	
 	commGetImuReadings(cube_comm_, id_, imu_table_, mag_cal_, n_imu_, imu_values_);
 			
-	for (int i = 0; i < n_imu_; i++) {
+	// for (int i = 0; i < n_imu_; i++) {
 		
-		printf("IMU: %d\n", ids_[i]);
+	// 	printf("IMU: %d\n", ids_[i]);
 	
-		if (imu_table_[5*i + 0]){
-			printf("Accelerometer\n");
-			printf("%f, %f, %f\n", imu_values_[3*3*i], imu_values_[3*3*i+1], imu_values_[3*3*i+2]);
-		}
-		if (imu_table_[5*i + 1]){
-			printf("Gyroscope\n");
-			printf("%f, %f, %f\n", imu_values_[3*3*i+3], imu_values_[3*3*i+4], imu_values_[3*3*i+5]);
-		}
-		if (imu_table_[5*i + 2] ){
-			printf("Magnetometer\n");
-			printf("%f, %f, %f\n", imu_values_[3*3*i+6], imu_values_[3*3*i+7], imu_values_[3*3*i+8]);
-		}
+	// 	if (imu_table_[5*i + 0]){
+	// 		printf("Accelerometer\n");
+	// 		printf("%f, %f, %f\n", imu_values_[3*3*i], imu_values_[3*3*i+1], imu_values_[3*3*i+2]);
+	// 	}
+	// 	if (imu_table_[5*i + 1]){
+	// 		printf("Gyroscope\n");
+	// 		printf("%f, %f, %f\n", imu_values_[3*3*i+3], imu_values_[3*3*i+4], imu_values_[3*3*i+5]);
+	// 	}
+	// 	if (imu_table_[5*i + 2] ){
+	// 		printf("Magnetometer\n");
+	// 		printf("%f, %f, %f\n", imu_values_[3*3*i+6], imu_values_[3*3*i+7], imu_values_[3*3*i+8]);
+	// 	}
 		
-		printf("\n");
-	}
+	// 	printf("\n");
+	// }
 	
 }
 

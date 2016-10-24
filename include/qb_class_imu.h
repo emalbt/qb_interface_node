@@ -9,6 +9,10 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Float64.h>
 
+// ROS cuustom msg
+#include <qb_interface/inertialSensor.h>
+
+
 // General Headers
 #include <vector>
 #include <map>
@@ -42,16 +46,6 @@ class qb_class_imu : public qb_class {
 
 		// Read measurements of all IMUs
 		bool readIMU();
-
-	
-
-		// Post on topic functions
-		void sendImuAcc();
-		void sendImuGyro();
-		void sendImuMag();
-		void sendImuQuat();
-		void sendImuTemp();
-		
 		
 		// Variables
 		std::vector<qbImuBoard*> imuboard_chain_;

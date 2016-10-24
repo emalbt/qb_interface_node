@@ -190,7 +190,7 @@ void commGetImuReadings(comm_settings *comm_settings_t, int id, uint8_t* imu_tab
 				c += 6;
 			}
 			
-			printf("\n");
+			// printf("\n");
 			c = c + 1;
 		}
 		if (values[c] == ':')
