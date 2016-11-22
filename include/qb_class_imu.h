@@ -11,6 +11,7 @@
 
 // ROS cuustom msg
 #include <qb_interface/inertialSensor.h>
+#include <qb_interface/inertialSensorArray.h>
 
 
 // General Headers

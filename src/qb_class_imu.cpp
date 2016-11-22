@@ -49,9 +49,9 @@ qb_class_imu::qb_class_imu(){
 
 	
     // init publisher
-	imuboard_pub_acc_  = node_->advertise<qb_interface::inertialSensor>("/qb_class_imu/acc", 1);
-	imuboard_pub_gyro_ = node_->advertise<qb_interface::inertialSensor>("/qb_class_imu/gyro", 1);
-	imuboard_pub_mag_  = node_->advertise<qb_interface::inertialSensor>("/qb_class_imu/mag", 1);
+	imuboard_pub_acc_  = node_->advertise<qb_interface::inertialSensorArray>("/qb_class_imu/acc", 1);
+	imuboard_pub_gyro_ = node_->advertise<qb_interface::inertialSensorArray>("/qb_class_imu/gyro", 1);
+	imuboard_pub_mag_  = node_->advertise<qb_interface::inertialSensorArray>("/qb_class_imu/mag", 1);
 	// imuboard_pub_quat_ = node_->advertise<qb_interface::inertialSensor>("/qb_class_imu/quat", 1);
 	// imuboard_pub_temp_ = node_->advertise<qb_interface::inertialSensor>("/qb_class_imu/temp", 1);
 
@@ -93,11 +93,14 @@ qb_class_imu::~qb_class_imu(){
 */
 bool qb_class_imu::readIMU(){
 	qb_interface::inertialSensor tmp_acc, tmp_gyro, tmp_mag;
+	qb_interface::inertialSensorArray acc, gyro, mag;
+
 
 	for (int k = imuboard_chain_.size(); k--;){
 	    imuboard_chain_[k]->getImuReadings();
 		
-		for (int i = 0; i < imuboard_chain_[k]->n_imu_; i++) {
+		for (int i = 0; i < imuboard_chain_[k]->n_imu_; i++) 
+		{
 			
 			// printf("IMU: %d\n", imuboard_chain_[k]->ids_[i]);
 		
@@ -107,7 +110,7 @@ bool qb_class_imu::readIMU(){
 				tmp_acc.x  = imuboard_chain_[k]->imu_values_[3*3*i];
 				tmp_acc.y  = imuboard_chain_[k]->imu_values_[3*3*i+1];
 				tmp_acc.z  = imuboard_chain_[k]->imu_values_[3*3*i+2];
-				imuboard_pub_acc_.publish(tmp_acc);
+				acc.m.push_back(tmp_acc);
 			}
 			if (imuboard_chain_[k]->imu_table_[5*i + 1])
 			{
@@ -115,15 +118,16 @@ bool qb_class_imu::readIMU(){
 				tmp_gyro.x  = imuboard_chain_[k]->imu_values_[3*3*i+3];
 				tmp_gyro.y  = imuboard_chain_[k]->imu_values_[3*3*i+4];
 				tmp_gyro.z  = imuboard_chain_[k]->imu_values_[3*3*i+5];
-				imuboard_pub_gyro_.publish(tmp_gyro);			
+				gyro.m.push_back(tmp_gyro);
 			}
+
 			if (imuboard_chain_[k]->imu_table_[5*i + 2] )
 			{
 				tmp_mag.id = imuboard_chain_[k]->ids_[i];
 				tmp_mag.x  = imuboard_chain_[k]->imu_values_[3*3*i+6];
 				tmp_mag.y  = imuboard_chain_[k]->imu_values_[3*3*i+7];
 				tmp_mag.z  = imuboard_chain_[k]->imu_values_[3*3*i+8];
-				imuboard_pub_mag_.publish(tmp_mag);	
+				mag.m.push_back(tmp_mag);
 			}
 
 			// TO DO ----->>>> pub(quat), pub(temp)
@@ -131,6 +135,9 @@ bool qb_class_imu::readIMU(){
 			// verify if this usleep is needed
 			usleep(0.5);
 		}
+		imuboard_pub_acc_.publish(acc);
+		imuboard_pub_gyro_.publish(gyro);			
+		imuboard_pub_mag_.publish(mag);	
 	
 	}
 
