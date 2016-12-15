@@ -18,6 +18,8 @@
 #include <vector>
 #include <map>
 #include <iostream>
+#include <eigen3/Eigen/Eigen>
+
 
 // Custom Headers
 #include "qb_class.h"
@@ -61,5 +63,9 @@ class qb_class_imu : public qb_class {
 		ros::Publisher imuboard_pub_mag_;
 		ros::Publisher imuboard_pub_quat_;
 		ros::Publisher imuboard_pub_temp_;
+
+
+		Eigen::MatrixXd Acc_, Acc_old_;
+
 
 };

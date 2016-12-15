@@ -55,6 +55,11 @@ qb_class_imu::qb_class_imu(){
 	// imuboard_pub_quat_ = node_->advertise<qb_interface::inertialSensor>("/qb_class_imu/quat", 1);
 	// imuboard_pub_temp_ = node_->advertise<qb_interface::inertialSensor>("/qb_class_imu/temp", 1);
 
+	Acc_.resize(imuboard_chain_[0]->n_imu_,3);
+	Acc_old_.resize(imuboard_chain_[0]->n_imu_,3);
+
+	Acc_.setZero();
+	Acc_old_.setZero();
 }
 
 //-----------------------------------------------------
@@ -111,6 +116,10 @@ bool qb_class_imu::readIMU(){
 				tmp_acc.y  = imuboard_chain_[k]->imu_values_[3*3*i+1];
 				tmp_acc.z  = imuboard_chain_[k]->imu_values_[3*3*i+2];
 				acc.m.push_back(tmp_acc);
+
+				Acc_(i,0) = tmp_acc.x; 
+				Acc_(i,1) = tmp_acc.y; 
+				Acc_(i,2) = tmp_acc.z; 
 			}
 			if (imuboard_chain_[k]->imu_table_[5*i + 1])
 			{
@@ -135,9 +144,16 @@ bool qb_class_imu::readIMU(){
 			// verify if this usleep is needed
 			usleep(0.5);
 		}
-		imuboard_pub_acc_.publish(acc);
-		imuboard_pub_gyro_.publish(gyro);			
-		imuboard_pub_mag_.publish(mag);	
+
+		if ((Acc_old_ - Acc_).sum() != 0)
+	 	{
+			imuboard_pub_acc_.publish(acc);
+			imuboard_pub_gyro_.publish(gyro);			
+			imuboard_pub_mag_.publish(mag);	
+	 	}
+
+	 	Acc_old_ = Acc_;
+		
 	
 	}
 
